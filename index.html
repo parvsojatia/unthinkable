@@ -24,93 +24,108 @@
             <p class="header__subtitle">Upload a file or paste a URL — get concrete suggestions to boost engagement</p>
         </header>
 
-        <!-- Input Mode Tabs -->
-        <div class="input-tabs" id="inputTabs">
-            <button class="input-tab input-tab--active" data-mode="file" id="tabFile">
-                📤 Upload File
-            </button>
-            <button class="input-tab" data-mode="url" id="tabUrl">
-                🌐 Paste URL
-            </button>
-        </div>
-
-        <!-- File Upload Mode -->
-        <div class="input-panel" id="panelFile">
-            <div class="upload-zone" id="uploadZone">
-                <input type="file" class="upload-zone__input" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" />
-                <span class="upload-zone__icon">📤</span>
-                <p class="upload-zone__text">
-                    Drag & drop your file here, or <strong>click to browse</strong>
-                </p>
-                <p class="upload-zone__hint">PDF, PNG, or JPG — up to 10 MB</p>
-            </div>
-
-            <!-- File Info -->
-            <div class="file-info" id="fileInfo">
-                <span class="file-info__icon" id="fileIcon">📄</span>
-                <span class="file-info__name" id="fileName"></span>
-                <span class="file-info__size" id="fileSize"></span>
-                <button class="file-info__remove" id="removeFile" title="Remove file">✕</button>
-            </div>
-        </div>
-
-        <!-- URL Input Mode -->
-        <div class="input-panel input-panel--hidden" id="panelUrl">
-            <div class="url-input-group">
-                <div class="url-input-wrapper">
-                    <span class="url-input__icon">🔗</span>
-                    <input type="url" class="url-input" id="urlInput"
-                        placeholder="https://example.com/blog-post or image URL" />
-                    <button class="url-input__clear" id="clearUrl" title="Clear URL">✕</button>
-                </div>
-                <p class="url-input__hint">Web pages, blog posts, articles, or image URLs (PNG, JPG)</p>
-            </div>
-        </div>
-
-        <!-- Analyze Button -->
-        <button class="analyze-btn" id="analyzeBtn">
-            <span class="analyze-btn__spinner"></span>
-            <span class="analyze-btn__text">Analyze Content</span>
+        <!-- Top Right Actions -->
+        <button class="new-analysis-btn" id="newAnalysisBtn" title="Start a new analysis">
+            <span>➕</span> New Analysis
         </button>
+
+        <div id="inputArea">
+            <!-- Input Mode Tabs -->
+            <div class="input-tabs" id="inputTabs">
+                <button class="input-tab input-tab--active" data-mode="file" id="tabFile">
+                    📤 Upload File
+                </button>
+                <button class="input-tab" data-mode="url" id="tabUrl">
+                    🌐 Paste URL
+                </button>
+            </div>
+
+            <!-- File Upload Mode -->
+            <div class="input-panel" id="panelFile">
+                <div class="upload-zone" id="uploadZone">
+                    <input type="file" class="upload-zone__input" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" />
+                    <span class="upload-zone__icon">📤</span>
+                    <p class="upload-zone__text">
+                        Drag & drop your file here, or <strong>click to browse</strong>
+                    </p>
+                    <p class="upload-zone__hint">PDF, PNG, or JPG — up to 10 MB</p>
+                </div>
+
+                <!-- File Info -->
+                <div class="file-info" id="fileInfo">
+                    <span class="file-info__icon" id="fileIcon">📄</span>
+                    <span class="file-info__name" id="fileName"></span>
+                    <span class="file-info__size" id="fileSize"></span>
+                    <button class="file-info__remove" id="removeFile" title="Remove file">✕</button>
+                </div>
+            </div>
+
+            <!-- URL Input Mode -->
+            <div class="input-panel input-panel--hidden" id="panelUrl">
+                <div class="url-input-group">
+                    <div class="url-input-wrapper">
+                        <span class="url-input__icon">🔗</span>
+                        <input type="url" class="url-input" id="urlInput"
+                            placeholder="https://example.com/blog-post or image URL" />
+                        <button class="url-input__clear" id="clearUrl" title="Clear URL">✕</button>
+                    </div>
+                    <p class="url-input__hint">Web pages, blog posts, articles, or image URLs (PNG, JPG)</p>
+                </div>
+            </div>
+
+            <!-- Analyze Button -->
+            <button class="analyze-btn" id="analyzeBtn">
+                <span class="analyze-btn__spinner"></span>
+                <span class="analyze-btn__text">Analyze Content</span>
+            </button>
+        </div>
 
         <!-- Error -->
         <div class="error" id="errorBox"></div>
 
         <!-- Results -->
         <section class="results" id="results">
-            <!-- Source Info -->
-            <div class="source-info" id="sourceInfo"></div>
+            <!-- Top Meta Bar -->
+            <div class="results-meta" id="resultsMeta">
+                <div class="results-meta__source" id="sourceInfo"></div>
+                <div class="results-meta__extraction" id="extractionMeta"></div>
+            </div>
 
-            <!-- Overall Score -->
-            <div class="score-hero" id="scoreHero">
-                <div class="score-hero__ring">
-                    <svg viewBox="0 0 160 160">
-                        <circle class="score-hero__ring-bg" cx="80" cy="80" r="70" />
-                        <circle class="score-hero__ring-progress" id="scoreRing" cx="80" cy="80" r="70"
-                            stroke-dasharray="439.82" stroke-dashoffset="439.82" />
-                    </svg>
-                    <span class="score-hero__value" id="scoreValue">0</span>
+            <!-- Dashboard Grid -->
+            <div class="dashboard">
+                <!-- Left: The Verdict -->
+                <div class="dashboard__panel dashboard__panel--verdict">
+                    <h2 class="dashboard__panel-title">The Verdict</h2>
+                    <div class="score-hero" id="scoreHero">
+                        <div class="score-hero__ring">
+                            <svg viewBox="0 0 160 160">
+                                <circle class="score-hero__ring-bg" cx="80" cy="80" r="70" />
+                                <circle class="score-hero__ring-progress" id="scoreRing" cx="80" cy="80" r="70"
+                                    stroke-dasharray="439.82" stroke-dashoffset="439.82" />
+                            </svg>
+                            <span class="score-hero__value" id="scoreValue">0</span>
+                        </div>
+                        <p class="score-hero__label">Overall Engagement Score</p>
+                        <div class="tone-badge" id="toneBadge"></div>
+                    </div>
                 </div>
-                <p class="score-hero__label">Overall Engagement Score</p>
-                <div class="score-hero__meta">
-                    <span>📝 <span id="wordCount">0</span> words</span>
-                    <span>📏 <span id="sentenceCount">0</span> sentences</span>
-                    <span>📁 <span id="resultFilename"></span></span>
+
+                <!-- Right: Quick Stats -->
+                <div class="dashboard__panel dashboard__panel--stats">
+                    <h2 class="dashboard__panel-title">Overview</h2>
+                    <div class="stats-grid" id="statsGrid">
+                        <!-- Filled dynamically by main.js -->
+                    </div>
                 </div>
             </div>
 
-            <!-- Extraction Metadata -->
-            <div class="extraction-meta" id="extractionMeta"></div>
-
-            <!-- Metrics Badges -->
-            <div class="extraction-meta" id="metricsBadges"></div>
-
             <!-- Dimension Cards -->
+            <h2 class="section-title">Analysis Breakdown</h2>
             <div class="dimensions" id="dimensions"></div>
 
-            <!-- Suggestions -->
+            <!-- Action Plan -->
             <div class="suggestions" id="suggestions">
-                <h2 class="suggestions__title">💡 Suggestions</h2>
+                <h2 class="section-title">🚀 Actionable Plan</h2>
                 <div id="suggestionList"></div>
             </div>
         </section>

@@ -9,13 +9,6 @@
 3. **Analyzes** content across five dimensions: readability, structure, engagement hooks, clarity, and actionability
 4. **Returns** 3–6 prioritized, explainable suggestions with severity levels
 
-## What It Does NOT Do
-
-- Spell-check or grammar-check (use Grammarly for that)
-- Handle handwritten text (OCR works on printed/typed text only)
-- Use external AI APIs — runs fully offline, no API keys needed
-- Open encrypted or password-protected PDFs
-- Guarantee perfect OCR on low-resolution scans
 
 ## Tech Stack
 
@@ -25,7 +18,7 @@
 | Backend | Express.js | Lightweight, mature, great file-handling ecosystem |
 | PDF extraction | pdf-parse | Pure JS, no native binaries |
 | Image OCR | Tesseract.js | Runs in Node, no external services |
-| Analysis | Custom heuristics | Explainable, fast, deterministic |
+| **Analysis** | **Local ML (Transformers)** | Real intelligence for sentiment & hooks, 100% local |
 
 ## Quick Start
 
@@ -34,21 +27,19 @@
 npm install
 
 # 2. Start dev server (frontend + backend concurrently)
+# Note: First startup downloads ~90MB of models (cached thereafter)
 npm run dev
-
-# 3. Open in browser
-# → http://localhost:5173
 ```
 
 ## How the Analysis Works
 
-The engine scores your content on five dimensions using transparent heuristics:
+The engine combines standard math with **local machine learning** (@xenova/transformers):
 
-- **Readability** — Flesch-Kincaid grade level (targeting grades 8–10 for general audiences)
-- **Structure** — Headings, paragraph sizes, use of lists and whitespace
-- **Engagement Hooks** — Questions, calls-to-action, power words
-- **Clarity** — Passive voice ratio, jargon density, sentence complexity
-- **Actionability** — Imperative verbs, numbered steps, clear next-actions
+- **Sentiment (ML)** — Uses **DistilBERT** to understand tone beyond just keyword counting.
+- **Hook Detection (ML)** — Uses **MiniLM Embeddings** to semantically classify the opening into archetypes (Story, Bold Claim, etc.).
+- **Readability** — Coleman-Liau academic formula for precise grade level calculation.
+- **Structure** — Heuristics for paragraph weight, scannability, and whitespace.
+- **Actionability** — Imperative verb detection and clear prompt analysis.
 
 Each suggestion tells you *what* to fix, *why* it matters, and *how* severe it is.
 

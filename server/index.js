@@ -7,6 +7,8 @@ import { extractFromImage } from './extractors/imageExtractor.js';
 import { validateUrl, fetchUrlContent } from './extractors/urlFetcher.js';
 import { preprocessText } from './preprocessing/preprocessor.js';
 import { analyzeContent } from './analysis/analyzer.js';
+import { initModels } from './analysis/mlModels.js';
+import { initCentroids } from './analysis/hookDetector.js';
 import { randomUUID } from 'node:crypto';
 
 const app = express();
@@ -96,7 +98,7 @@ app.post('/api/analyze', upload.single('file'), async (req, res) => {
         const preprocessed = preprocessText(extraction.extracted_text);
 
         // ── Step 3: Analyze (Phase 6) ─────────────────────
-        const analysis = analyzeContent(preprocessed.normalizedText, preprocessed);
+        const analysis = await analyzeContent(preprocessed.normalizedText, preprocessed);
 
         // ── Step 4: Respond ───────────────────────────────
         res.json({
@@ -178,7 +180,7 @@ app.post('/api/analyze-url', async (req, res) => {
 
         // Preprocess + Analyze
         const preprocessed = preprocessText(extractedText);
-        const analysis = analyzeContent(preprocessed.normalizedText, preprocessed);
+        const analysis = await analyzeContent(preprocessed.normalizedText, preprocessed);
 
         res.json({
             requestId,
@@ -233,10 +235,16 @@ app.use((err, _req, res, _next) => {
 
 // ─── Start Server ─────────────────────────────────────────
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`\n  🚀 Content Analyzer API running on http://localhost:${PORT}`);
     console.log(`  📋 Health check:     GET  http://localhost:${PORT}/api/health`);
     console.log(`  📤 Upload only:      POST http://localhost:${PORT}/api/upload`);
     console.log(`  🔬 File analysis:    POST http://localhost:${PORT}/api/analyze`);
     console.log(`  🌐 URL analysis:     POST http://localhost:${PORT}/api/analyze-url\n`);
+
+    // Load ML models asynchronously (server is already accepting requests)
+    const modelsLoaded = await initModels();
+    if (modelsLoaded) {
+        await initCentroids();
+    }
 });

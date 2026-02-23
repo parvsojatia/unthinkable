@@ -1,11 +1,18 @@
 /**
- * Content Analysis Engine — Phase 6
+ * Content Analysis Engine — ML-Powered
  *
  * Single-pass pipeline that computes metrics and generates
  * prioritized suggestions with a minimum of 3.
  *
- * Dimensions: readability, structure, engagement, clarity, actionability, sentiment
+ * Dimensions: readability, structure, engagement, clarity, actionability, sentiment, hook
+ *
+ * ML Models (via @xenova/transformers, 100% local):
+ *   - DistilBERT: Sentiment analysis (replaces word-list heuristic)
+ *   - MiniLM: Semantic hook archetype detection via cosine similarity
  */
+
+import { isReady as mlReady, classifySentiment } from './mlModels.js';
+import { classifyHook } from './hookDetector.js';
 
 // ─── Helpers ──────────────────────────────────────────────
 
@@ -30,7 +37,7 @@ function splitParagraphs(text) {
     return text.split(/\n\s*\n/).map((p) => p.trim()).filter((p) => p.length > 0);
 }
 
-// ─── Sentiment (lightweight lexicon-based) ────────────────
+// ─── Sentiment (ML-powered with heuristic fallback) ───────
 
 const POSITIVE_WORDS = [
     'good', 'great', 'best', 'better', 'love', 'like', 'enjoy', 'happy', 'excellent',
@@ -38,8 +45,6 @@ const POSITIVE_WORDS = [
     'superb', 'outstanding', 'impressive', 'magnificent', 'remarkable', 'incredible',
     'easy', 'simple', 'fast', 'free', 'helpful', 'useful', 'effective', 'powerful',
     'success', 'win', 'achieve', 'improve', 'grow', 'inspire', 'motivate', 'empower',
-    'innovative', 'creative', 'exciting', 'delightful', 'charming', 'elegant',
-    'clear', 'clean', 'smooth', 'strong', 'bright', 'fresh', 'smart', 'safe',
 ];
 
 const NEGATIVE_WORDS = [
@@ -48,28 +53,72 @@ const NEGATIVE_WORDS = [
     'difficult', 'hard', 'complex', 'slow', 'expensive', 'dangerous', 'risky',
     'fail', 'failure', 'problem', 'issue', 'error', 'bug', 'broken', 'crash',
     'wrong', 'mistake', 'loss', 'pain', 'suffer', 'struggle', 'stress', 'worry',
-    'never', 'cannot', 'impossible', 'unfortunately', 'sadly', 'regret',
-    'complicated', 'overwhelming', 'messy', 'weak', 'useless', 'pointless',
 ];
 
-function analyzeSentiment(words) {
+/**
+ * ML-powered sentiment analysis using DistilBERT.
+ * Falls back to lexicon-based heuristic if models aren't loaded.
+ */
+async function analyzeSentiment(text, words) {
+    // Try ML first
+    if (mlReady()) {
+        try {
+            const sentences = splitSentences(text);
+            if (sentences.length === 0) {
+                return { score: 50, details: { sentimentScore: 0, toneLabel: 'neutral', method: 'ml-distilbert', mlConfidence: 0 } };
+            }
+
+            // Evaluate up to 30 sentences to keep latency low
+            const targetSentences = sentences.slice(0, 30);
+            const results = await classifySentiment(targetSentences);
+
+            let totalEmotion = 0;
+            let sumConfidence = 0;
+
+            for (const result of results) {
+                const isPositive = result.label === 'POSITIVE';
+                const confidence = result.score;
+                totalEmotion += isPositive ? confidence : -confidence;
+                sumConfidence += confidence;
+            }
+
+            const sentimentScore = totalEmotion / results.length;
+            const avgConfidence = sumConfidence / results.length;
+            const score = Math.round(50 + sentimentScore * 50);
+
+            let toneLabel;
+            if (sentimentScore > 0.3) toneLabel = 'positive';
+            else if (sentimentScore > 0.1) toneLabel = 'mostly positive';
+            else if (sentimentScore > -0.1) toneLabel = 'neutral';
+            else if (sentimentScore > -0.3) toneLabel = 'mostly negative';
+            else toneLabel = 'negative';
+
+            return {
+                score: Math.max(0, Math.min(100, score)),
+                details: {
+                    sentimentScore: Math.round(sentimentScore * 100) / 100,
+                    toneLabel,
+                    method: 'ml-distilbert (sentence-avg)',
+                    mlConfidence: Math.round(avgConfidence * 100) / 100,
+                },
+            };
+        } catch (err) {
+            console.warn('ML sentiment failed, falling back to heuristic:', err.message);
+        }
+    }
+
+    // Fallback: lexicon-based
     let positiveCount = 0;
     let negativeCount = 0;
-
     for (const w of words) {
         const lower = w.toLowerCase();
         if (POSITIVE_WORDS.includes(lower)) positiveCount++;
         if (NEGATIVE_WORDS.includes(lower)) negativeCount++;
     }
-
     const total = positiveCount + negativeCount;
-    // Score: -1 (fully negative) to +1 (fully positive), 0 = neutral
     let sentimentScore = 0;
-    if (total > 0) {
-        sentimentScore = (positiveCount - negativeCount) / total;
-    }
+    if (total > 0) sentimentScore = (positiveCount - negativeCount) / total;
 
-    // Map to tone label
     let toneLabel;
     if (sentimentScore > 0.3) toneLabel = 'positive';
     else if (sentimentScore > 0.1) toneLabel = 'mostly positive';
@@ -77,17 +126,71 @@ function analyzeSentiment(words) {
     else if (sentimentScore > -0.3) toneLabel = 'mostly negative';
     else toneLabel = 'negative';
 
-    // Score 0-100 (centered at 50 for neutral)
     const score = Math.round(50 + sentimentScore * 50);
-
     return {
         score: Math.max(0, Math.min(100, score)),
         details: {
             sentimentScore: Math.round(sentimentScore * 100) / 100,
             toneLabel,
+            method: 'heuristic-lexicon',
             positiveWords: positiveCount,
             negativeWords: negativeCount,
         },
+    };
+}
+
+// ─── Hook Analysis (ML-powered) ───────────────────────────
+
+async function analyzeHook(text) {
+    const sentences = splitSentences(text);
+    if (sentences.length === 0) {
+        return { score: 0, details: { hookType: 'none', reasons: [] } };
+    }
+
+    const firstSentence = sentences[0];
+    const firstWords = splitWords(firstSentence);
+    let score = 50; // baseline
+    const reasons = [];
+    let hookType = 'generic';
+
+    // ML hook classification
+    if (mlReady()) {
+        try {
+            const hookResult = await classifyHook(firstSentence);
+            if (hookResult) {
+                hookType = hookResult.hookType;
+                if (hookType !== 'generic') {
+                    score += 30; // Strong hook archetype detected
+                    reasons.push(`ML detected "${hookType}" hook (confidence: ${Math.round(hookResult.confidence * 100)}%)`);
+                }
+            }
+        } catch (err) {
+            console.warn('ML hook detection failed:', err.message);
+        }
+    }
+
+    // Structural checks (always run)
+    if (firstWords.length <= 12) {
+        score += 10;
+        reasons.push('Opening is concise (≤12 words)');
+    } else if (firstWords.length > 20) {
+        score -= 15;
+        reasons.push('Opening is too long (>20 words)');
+    }
+
+    if (/\?/.test(firstSentence)) {
+        score += 10;
+        reasons.push('Opens with a question');
+    }
+
+    if (/\d/.test(firstSentence)) {
+        score += 5;
+        reasons.push('Contains a number/statistic');
+    }
+
+    return {
+        score: Math.max(0, Math.min(100, score)),
+        details: { hookType, reasons, method: mlReady() ? 'ml-embeddings' : 'heuristic' },
     };
 }
 
@@ -530,17 +633,15 @@ function generateSuggestions(dimensions, ctx) {
     return triggered.slice(0, 6); // Cap at 6
 }
 
-// ─── Main Analysis ────────────────────────────────────────
-
 /**
  * Analyze content across all dimensions in a single pipeline.
- * Accepts either raw text or preprocessed data.
+ * Uses ML models for sentiment and hook detection when available.
  *
  * @param {string} text - The text content to analyze
  * @param {object} [preprocessed] - Optional preprocessed data from preprocessor
- * @returns {{ overallScore, dimensions, metrics, suggestions, wordCount, sentenceCount }}
+ * @returns {Promise<{ overallScore, dimensions, metrics, suggestions, wordCount, sentenceCount }>}
  */
-export function analyzeContent(text, preprocessed = null) {
+export async function analyzeContent(text, preprocessed = null) {
     if (!text || text.trim().length === 0) {
         return {
             overallScore: 0,
@@ -555,18 +656,30 @@ export function analyzeContent(text, preprocessed = null) {
 
     const words = splitWords(text);
 
-    // Compute all dimensions
-    const readability = analyzeReadability(text);
-    const structure = analyzeStructure(text);
-    const engagement = analyzeEngagement(text);
-    const clarity = analyzeClarity(text);
-    const actionability = analyzeActionability(text);
-    const sentiment = analyzeSentiment(words);
+    // Compute all dimensions (sentiment + hook are async/ML-powered)
+    const [readability, structure, engagement, clarity, actionability, sentiment, hook] =
+        await Promise.all([
+            analyzeReadability(text),
+            analyzeStructure(text),
+            analyzeEngagement(text),
+            analyzeClarity(text),
+            analyzeActionability(text),
+            analyzeSentiment(text, words),
+            analyzeHook(text),
+        ]);
 
-    const dimensions = { readability, structure, engagement, clarity, actionability, sentiment };
+    const dimensions = { readability, structure, engagement, clarity, actionability, sentiment, hook };
 
-    // Weighted average (sentiment is informational, lower weight)
-    const weights = { readability: 0.22, structure: 0.18, engagement: 0.2, clarity: 0.18, actionability: 0.12, sentiment: 0.1 };
+    // Weighted average (hook is important for social content, sentiment is informational)
+    const weights = {
+        readability: 0.18,
+        structure: 0.16,
+        engagement: 0.18,
+        clarity: 0.15,
+        actionability: 0.10,
+        sentiment: 0.08,
+        hook: 0.15,
+    };
     const overallScore = Math.round(
         Object.entries(weights).reduce((sum, [key, weight]) => sum + dimensions[key].score * weight, 0)
     );
@@ -577,6 +690,9 @@ export function analyzeContent(text, preprocessed = null) {
         gradeLevel: readability.details.gradeLevel,
         toneLabel: sentiment.details.toneLabel,
         sentimentScore: sentiment.details.sentimentScore,
+        sentimentMethod: sentiment.details.method,
+        hookType: hook.details.hookType,
+        hookMethod: hook.details.method,
         questionCount: engagement.details.questionCount,
         ctaCount: engagement.details.ctaCount,
         emojiCount: engagement.details.emojiCount,
@@ -607,3 +723,4 @@ export function analyzeContent(text, preprocessed = null) {
         suggestions,
     };
 }
+

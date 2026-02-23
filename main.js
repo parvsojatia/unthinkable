@@ -19,9 +19,21 @@ const clearUrlBtn = document.getElementById('clearUrl');
 const analyzeBtn = document.getElementById('analyzeBtn');
 const errorBox = document.getElementById('errorBox');
 const results = document.getElementById('results');
+const inputArea = document.getElementById('inputArea');
+const newAnalysisBtn = document.getElementById('newAnalysisBtn');
 
 let selectedFile = null;
 let activeMode = 'file'; // 'file' or 'url'
+
+// ─── New Analysis ─────────────────────────────────────────
+
+newAnalysisBtn.addEventListener('click', () => {
+    results.classList.remove('results--visible');
+    inputArea.classList.remove('input-area--hidden');
+    newAnalysisBtn.classList.remove('new-analysis-btn--visible');
+    hideError();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+});
 
 // ─── Tab Switching ────────────────────────────────────────
 
@@ -218,36 +230,32 @@ function hideError() {
 // ─── Render Results ───────────────────────────────────────
 
 function renderResults(data, source) {
+    // Transition UI to results mode
+    inputArea.classList.add('input-area--hidden');
+    newAnalysisBtn.classList.add('new-analysis-btn--visible');
+
     const { analysis, suggestions, extraction, requestId } = data;
     const { overallScore, wordCount, sentenceCount, dimensions, metrics } = analysis;
 
-    // Source info
+    // Source info (Top Meta Bar Left)
     const sourceInfoEl = document.getElementById('sourceInfo');
     if (sourceInfoEl) {
         if (source === 'url') {
             const title = data.pageTitle || data.sourceUrl;
             const url = data.sourceUrl;
             sourceInfoEl.innerHTML = `
-                <span class="source-info__badge">🌐 URL</span>
-                <a href="${url}" target="_blank" rel="noopener" class="source-info__link">${title}</a>
+                <span class="suggestion__badge suggestion__badge--medium">🌐 URL</span>
+                <a href="${url}" target="_blank" rel="noopener" style="color:var(--text-primary); text-decoration:none;">${title}</a>
             `;
         } else {
             sourceInfoEl.innerHTML = `
-                <span class="source-info__badge">📄 File</span>
-                <span class="source-info__name">${data.filename}</span>
+                <span class="suggestion__badge suggestion__badge--low">📄 File</span>
+                <span style="color:var(--text-primary);">${data.filename}</span>
             `;
         }
-        sourceInfoEl.classList.add('source-info--visible');
     }
 
-    // Score ring
-    animateScore(overallScore);
-    document.getElementById('wordCount').textContent = wordCount.toLocaleString();
-    document.getElementById('sentenceCount').textContent = sentenceCount.toLocaleString();
-    const resultFilename = document.getElementById('resultFilename');
-    resultFilename.textContent = source === 'url' ? (data.pageTitle || 'URL') : (data.filename || '');
-
-    // Extraction metadata
+    // Extraction metadata (Top Meta Bar Right)
     const metaEl = document.getElementById('extractionMeta');
     if (metaEl) {
         const methodLabel = {
@@ -263,81 +271,103 @@ function renderResults(data, source) {
         const pages = extraction.page_count || '—';
 
         metaEl.innerHTML = `
-            <span title="Extraction method">${method}</span>
-            <span title="Confidence">🎯 ${confidence}</span>
-            <span title="Pages">📑 ${pages} pg</span>
-            <span title="Request ID" class="extraction-meta__id">🔑 ${requestId.slice(0, 8)}…</span>
+            <span style="color:var(--text-muted); font-size: 0.85rem;" title="Extraction method">${method}</span>
+            <span style="color:var(--text-muted); font-size: 0.85rem;" title="Confidence">🎯 ${confidence}</span>
+            <span style="color:var(--text-muted); font-size: 0.85rem;" title="Pages">📑 ${pages} pg</span>
+            <span style="color:var(--text-muted); font-size: 0.75rem;" title="Request ID">🔑 ${requestId.slice(0, 8)}…</span>
         `;
-        metaEl.classList.add('extraction-meta--visible');
     }
 
-    // Metrics bar
-    const metricsEl = document.getElementById('metricsBadges');
-    if (metricsEl && metrics) {
+    // Verdict section (Left Panel)
+    animateScore(overallScore);
+    const toneBadge = document.getElementById('toneBadge');
+    if (toneBadge && metrics) {
         const toneColors = {
             'positive': 'var(--success)', 'mostly positive': 'var(--success)',
             'neutral': 'var(--text-secondary)',
             'mostly negative': 'var(--warning)', 'negative': 'var(--danger)',
         };
         const toneColor = toneColors[metrics.toneLabel] || 'var(--text-secondary)';
-        metricsEl.innerHTML = `
-            <span style="border-color: ${toneColor}" title="Detected tone">🎭 ${metrics.toneLabel}</span>
-            <span title="Readability level">📚 ${metrics.readabilityCategory}</span>
-            ${metrics.emojiCount > 0 ? `<span title="Emojis found">😀 ${metrics.emojiCount} emojis</span>` : ''}
-            ${metrics.hashtagCount > 0 ? `<span title="Hashtags found"># ${metrics.hashtagCount} hashtags</span>` : ''}
-            <span title="Grade level">🎓 grade ${metrics.gradeLevel || '?'}</span>
+        toneBadge.style.color = toneColor;
+        toneBadge.style.borderColor = toneColor;
+        toneBadge.innerHTML = `🎭 ${metrics.toneLabel} Tone`;
+    }
+
+    // Quick Stats (Right Panel)
+    const statsGrid = document.getElementById('statsGrid');
+    if (statsGrid && metrics) {
+        const readingTime = Math.ceil(wordCount / 200); // approx 200 wpm
+        statsGrid.innerHTML = `
+            <div class="stat-item">
+                <span class="stat-item__value">${wordCount.toLocaleString()}</span>
+                <span class="stat-item__label">Words</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-item__value">${readingTime}m</span>
+                <span class="stat-item__label">Reading Time</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-item__value">${metrics.gradeLevel || '?'}</span>
+                <span class="stat-item__label">Grade Level</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-item__value">${metrics.emojiCount + metrics.hashtagCount}</span>
+                <span class="stat-item__label">Social Tags</span>
+            </div>
         `;
-        metricsEl.classList.add('extraction-meta--visible');
     }
 
     // Dimension cards
     const dimsContainer = document.getElementById('dimensions');
-    dimsContainer.innerHTML = '';
+    if (dimsContainer) {
+        dimsContainer.innerHTML = '';
+        const dimIcons = {
+            readability: '📖', structure: '🏗️', engagement: '🔥',
+            clarity: '💎', actionability: '🎯', sentiment: '🎭',
+            hook: '🪝',
+        };
 
-    const dimIcons = {
-        readability: '📖', structure: '🏗️', engagement: '🔥',
-        clarity: '💎', actionability: '🎯', sentiment: '🎭',
-    };
-
-    for (const [name, dim] of Object.entries(dimensions)) {
-        const card = document.createElement('div');
-        card.className = 'dim-card';
-        card.innerHTML = `
-            <div class="dim-card__header">
-                <span class="dim-card__name">${dimIcons[name] || '📊'} ${name}</span>
-                <span class="dim-card__score" style="color: ${scoreColor(dim.score)}">${dim.score}</span>
-            </div>
-            <div class="dim-card__bar">
-                <div class="dim-card__bar-fill" style="background: ${scoreColor(dim.score)}"></div>
-            </div>
-        `;
-        dimsContainer.appendChild(card);
-        requestAnimationFrame(() => {
-            card.querySelector('.dim-card__bar-fill').style.width = dim.score + '%';
-        });
+        for (const [name, dim] of Object.entries(dimensions)) {
+            const card = document.createElement('div');
+            card.className = 'dim-card';
+            card.innerHTML = `
+                <div class="dim-card__header">
+                    <span class="dim-card__name">${dimIcons[name] || '📊'} ${name}</span>
+                    <span class="dim-card__score" style="color: ${scoreColor(dim.score)}">${dim.score}/100</span>
+                </div>
+                <div class="dim-card__bar">
+                    <div class="dim-card__bar-fill" style="background: ${scoreColor(dim.score)}"></div>
+                </div>
+            `;
+            dimsContainer.appendChild(card);
+            requestAnimationFrame(() => {
+                card.querySelector('.dim-card__bar-fill').style.width = dim.score + '%';
+            });
+        }
     }
 
-    // Suggestions
+    // Action Plan (Suggestions)
     const suggestionList = document.getElementById('suggestionList');
-    suggestionList.innerHTML = '';
-
-    if (suggestions.length === 0) {
-        suggestionList.innerHTML = '<p style="color: var(--success); text-align: center; padding: 2rem;">🎉 Your content looks great — no major suggestions!</p>';
-    } else {
-        for (const s of suggestions) {
-            const el = document.createElement('div');
-            el.className = `suggestion suggestion--${s.severity}`;
-            el.innerHTML = `
-                <div class="suggestion__header">
-                    <span class="suggestion__badge suggestion__badge--${s.severity}">${s.severity}</span>
-                    <span class="suggestion__dimension">${s.dimension}</span>
-                </div>
-                <p class="suggestion__what">${s.what}</p>
-                <p class="suggestion__why">${s.why}</p>
-                <p class="suggestion__how">💡 ${s.how}</p>
-                ${s.example ? `<p class="suggestion__example">📝 ${s.example}</p>` : ''}
-            `;
-            suggestionList.appendChild(el);
+    if (suggestionList) {
+        suggestionList.innerHTML = '';
+        if (suggestions.length === 0) {
+            suggestionList.innerHTML = '<p style="color: var(--success); text-align: center; padding: 2rem;">🎉 Your content looks great — no major suggestions!</p>';
+        } else {
+            for (const s of suggestions) {
+                const el = document.createElement('div');
+                el.className = `suggestion suggestion--${s.severity}`;
+                el.innerHTML = `
+                    <div class="suggestion__header">
+                        <span class="suggestion__badge suggestion__badge--${s.severity}">${s.severity}</span>
+                        <span class="suggestion__dimension">${s.dimension}</span>
+                    </div>
+                    <p class="suggestion__what" style="font-weight: 600; margin-bottom: 8px;">${s.what}</p>
+                    <p class="suggestion__why" style="margin-bottom: 8px; color: var(--text-secondary);">${s.why}</p>
+                    <p class="suggestion__how">💡 ${s.how}</p>
+                    ${s.example ? `<p class="suggestion__example" style="margin-top: 12px; padding-top: 12px; border-top: 1px dotted rgba(255,255,255,0.1);">📝 ${s.example}</p>` : ''}
+                `;
+                suggestionList.appendChild(el);
+            }
         }
     }
 
