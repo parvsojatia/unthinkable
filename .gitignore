@@ -1,3 +1,4 @@
+.model_cache/
 node_modules/
 dist/
 uploads/
@@ -6,3 +7,5 @@ uploads/
 .DS_Store
 Thumbs.db
 *.tmp
+*.webp
+brain/

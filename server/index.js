@@ -23,28 +23,7 @@ app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// ─── Upload Only Endpoint ─────────────────────────────────
 
-app.post('/api/upload', upload.single('file'), async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded. Please select a PDF, PNG, or JPG.' });
-        }
-
-        const { originalname, mimetype, size, requestId } = req.file;
-
-        res.json({
-            requestId,
-            filename: originalname,
-            fileType: mimetype,
-            fileSize: size,
-            message: 'File uploaded successfully. Use the requestId to trigger analysis.',
-        });
-    } catch (err) {
-        console.error('Upload error:', err);
-        res.status(500).json({ error: 'Upload failed. Please try again.' });
-    }
-});
 
 // ─── Full Pipeline Endpoint ───────────────────────────────
 // Upload → Extract → Preprocess → Analyze → Respond

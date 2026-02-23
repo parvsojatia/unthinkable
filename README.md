@@ -1,48 +1,77 @@
 # 📄 Content Analyzer
 
-**Upload a PDF or image → get concrete suggestions to make your content more engaging.**
+**A local-first, ML-powered engine for optimizing social media engagement.**
 
-## What It Does
+Analyze PDFs, images, or URLs to get concrete, explainable suggestions to boost your content's readability, hook strength, and overall impact.
 
-1. **Accepts** PDFs (digital) and images (PNG, JPG) up to 10 MB
-2. **Extracts** text using pdf-parse for PDFs and Tesseract.js OCR for images
-3. **Analyzes** content across five dimensions: readability, structure, engagement hooks, clarity, and actionability
-4. **Returns** 3–6 prioritized, explainable suggestions with severity levels
+---
 
+## 🏗️ Architecture
 
-## Tech Stack
+```mermaid
+graph TD
+    subgraph Client ["Frontend"]
+        UI["Vite + Vanilla JS"]
+        DB["Dashboard View"]
+    end
 
-| Layer | Tool | Rationale |
-|---|---|---|
-| Frontend | Vite + vanilla JS | Zero framework overhead, instant HMR |
-| Backend | Express.js | Lightweight, mature, great file-handling ecosystem |
-| PDF extraction | pdf-parse | Pure JS, no native binaries |
-| Image OCR | Tesseract.js | Runs in Node, no external services |
-| **Analysis** | **Local ML (Transformers)** | Real intelligence for sentiment & hooks, 100% local |
+    subgraph Server ["Backend (Express)"]
+        RT["API Routes"]
+        EX["Extractors (PDF/OCR/Web)"]
+        ML["ML Engine (@xenova/transformers)"]
+        HE["Heuristic Scorer"]
+    end
 
-## Quick Start
+    Client -->|Upload / URL| RT
+    RT --> EX --> ML --> HE
+    HE -->|Structured Results| Client
+```
+
+---
+
+## 🔥 Key Features
+
+- **⚡ Local ML Inference**: Runs 100% locally using `@xenova/transformers` (DistilBERT for sentiment, MiniLM for hooks). No API keys required.
+- **🌐 URL Extraction**: Extract and analyze content directly from LinkedIn, Twitter, and other complex SPAs.
+- **🔍 Smart OCR**: Extract text from PNG/JPG screenshots using Tesseract.js.
+- **⚖️ Dimensions of Impact**:
+    - **Readability**: Coleman-Liau Grade Level analysis.
+    - **Engagement**: Semantic Hook Archetype detection (Bold Claim, Story, Statistic, etc.).
+    - **Clarity**: Passive voice and jargon detection.
+    - **Actionability**: Imperative directive analysis.
+- **🎯 Actionable Steps**: Get 3-6 prioritized suggestions explaining *what* to change, *why* it matters, and *how* to fix it.
+
+---
+
+## 🚀 Quick Start
 
 ```bash
-# 1. Install dependencies
+# 1. Clone & Install
 npm install
 
-# 2. Start dev server (frontend + backend concurrently)
-# Note: First startup downloads ~90MB of models (cached thereafter)
+# 2. Run in Development Mode
+# On first run, ~90MB of models are downloaded to .model_cache/
 npm run dev
 ```
 
-## How the Analysis Works
+---
 
-The engine combines standard math with **local machine learning** (@xenova/transformers):
+## 📂 Project Structure
 
-- **Sentiment (ML)** — Uses **DistilBERT** to understand tone beyond just keyword counting.
-- **Hook Detection (ML)** — Uses **MiniLM Embeddings** to semantically classify the opening into archetypes (Story, Bold Claim, etc.).
-- **Readability** — Coleman-Liau academic formula for precise grade level calculation.
-- **Structure** — Heuristics for paragraph weight, scannability, and whitespace.
-- **Actionability** — Imperative verb detection and clear prompt analysis.
+- `server/analysis/`: The "Brain" — ML logic, hook centroids, and score heuristics.
+- `server/extractors/`: Text extraction logic for PDFs, Images, and Web pages.
+- `main.js`: Frontend state management and dashboard rendering.
+- `style.css`: Modern design system and dashboard layouts.
 
-Each suggestion tells you *what* to fix, *why* it matters, and *how* severe it is.
+---
 
-## License
+## 📜 Technical Manifesto
 
-MIT
+This project prioritizes **Explainable AI**. Every metric is backed by either clear academic formulas (readability) or semantic similarity to proven archetypes. We favor local compute for privacy and zero horizontal latency.
+
+---
+
+## ⚖️ License
+
+MIT © [Parv Sojatia](https://github.com/parvsojatia)
+

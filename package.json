@@ -1,8 +1,22 @@
 {
   "name": "content-analyzer",
   "version": "1.0.0",
-  "description": "Upload PDFs or images, extract text, get engagement improvement suggestions",
+  "description": "Local-first, ML-powered content engagement analyzer for PDFs, images, and URLs.",
   "type": "module",
+  "author": "Parv Sojatia",
+  "license": "MIT",
+  "keywords": [
+    "content-analysis",
+    "engagement-optimization",
+    "local-ml",
+    "transformers-js",
+    "sentiment-analysis",
+    "social-media-hooks"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/parvsojatia/unthinkable"
+  },
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "node --watch server/index.js",
