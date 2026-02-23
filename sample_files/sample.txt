@@ -1,0 +1,19 @@
+This is a sample document for testing the Content Analyzer.
+
+The Content Analyzer is a tool that helps you improve your writing. It works by extracting text from uploaded files and running it through five analysis dimensions.
+
+How does it work? First you upload a PDF or image. The system then extracts the text using pdf-parse or Tesseract OCR. After extraction the analysis engine scores your content across readability structure engagement clarity and actionability. Each dimension produces a numeric score and the engine generates prioritized suggestions.
+
+The readability dimension uses the Flesch-Kincaid grade level formula to determine how easy your text is to read. Content aimed at general audiences should target grade levels between 8 and 10. If your content scores above grade 12 you might want to simplify your sentence structures and use shorter words. Long sentences with many subordinate clauses and parenthetical expressions tend to score poorly on readability metrics because they require the reader to hold multiple ideas in working memory simultaneously which increases cognitive load and reduces comprehension especially for readers who are scanning quickly or reading on mobile devices where attention spans tend to be shorter.
+
+Here are some tips to improve your content:
+
+1. Break long paragraphs into smaller chunks
+2. Use headings to organize your sections
+3. Add bullet points for lists of items
+4. Include questions to engage readers
+5. Add clear calls to action
+
+Try these techniques in your next document. You can upload the revised version to see if your scores improve!
+
+What makes great content? Great content is clear actionable and engaging. It speaks directly to the reader uses simple language and provides concrete next steps. Discover the power of simple writing. Start improving your content today.
