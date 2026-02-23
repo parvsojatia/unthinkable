@@ -218,7 +218,7 @@ function hideError() {
 // ─── Render Results ───────────────────────────────────────
 
 function renderResults(data, source) {
-    const { analysis, suggestions, extraction, requestId } = data;
+    const { analysis, suggestions, extraction, requestId, explanation } = data;
     const { overallScore, wordCount, sentenceCount, dimensions, metrics } = analysis;
 
     // Source info
@@ -297,14 +297,22 @@ function renderResults(data, source) {
     const dimIcons = {
         readability: '📖', structure: '🏗️', engagement: '🔥',
         clarity: '💎', actionability: '🎯', sentiment: '🎭',
+        hook: '🪝', cognitiveLoad: '🧠', persuasion: '🎯',
+    };
+
+    const dimLabels = {
+        readability: 'Readability', structure: 'Structure', engagement: 'Engagement',
+        clarity: 'Clarity', actionability: 'Actionability', sentiment: 'Sentiment',
+        hook: 'Opening Hook', cognitiveLoad: 'Cognitive Load', persuasion: 'Persuasion',
     };
 
     for (const [name, dim] of Object.entries(dimensions)) {
         const card = document.createElement('div');
         card.className = 'dim-card';
+        const label = dimLabels[name] || name;
         card.innerHTML = `
             <div class="dim-card__header">
-                <span class="dim-card__name">${dimIcons[name] || '📊'} ${name}</span>
+                <span class="dim-card__name">${dimIcons[name] || '📊'} ${label}</span>
                 <span class="dim-card__score" style="color: ${scoreColor(dim.score)}">${dim.score}</span>
             </div>
             <div class="dim-card__bar">
@@ -339,6 +347,15 @@ function renderResults(data, source) {
             `;
             suggestionList.appendChild(el);
         }
+    }
+
+    // Explanation panel
+    const explEl = document.getElementById('explanationPanel');
+    if (explEl && explanation) {
+        explEl.innerHTML = `<p class="explanation__text">${explanation}</p>`;
+        explEl.classList.add('explanation--visible');
+    } else if (explEl) {
+        explEl.classList.remove('explanation--visible');
     }
 
     results.classList.add('results--visible');

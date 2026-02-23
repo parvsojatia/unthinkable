@@ -1,11 +1,14 @@
 /**
- * Content Analysis Engine — Phase 6
+ * Content Analysis Engine — Phase 7
  *
  * Single-pass pipeline that computes metrics and generates
  * prioritized suggestions with a minimum of 3.
  *
- * Dimensions: readability, structure, engagement, clarity, actionability, sentiment
+ * Dimensions: readability, structure, engagement, clarity, actionability, sentiment,
+ *             hook, cognitiveLoad, persuasion
  */
+
+import { analyzeHook, analyzeCognitiveLoad, detectPersuasion, generateContentExplanation } from './contentSignals.js';
 
 // ─── Helpers ──────────────────────────────────────────────
 
@@ -563,10 +566,32 @@ export function analyzeContent(text, preprocessed = null) {
     const actionability = analyzeActionability(text);
     const sentiment = analyzeSentiment(words);
 
-    const dimensions = { readability, structure, engagement, clarity, actionability, sentiment };
+    const sentences = splitSentences(text);
+    const ctx = {
+        text,
+        words,
+        sentences,
+        wordCount: words.length,
+        isShortForm: words.length < 250,
+    };
 
-    // Weighted average (sentiment is informational, lower weight)
-    const weights = { readability: 0.22, structure: 0.18, engagement: 0.2, clarity: 0.18, actionability: 0.12, sentiment: 0.1 };
+    // Content signal modules (Phase 7)
+    const hook = analyzeHook(text);
+    const cognitiveLoad = analyzeCognitiveLoad(text);
+    const persuasion = detectPersuasion(text);
+
+    const dimensions = {
+        readability, structure, engagement, clarity, actionability, sentiment,
+        hook: { score: hook.score, details: { hookType: hook.hookType, firstSentence: hook.firstSentence, signals: hook.signals, reasons: hook.reasons } },
+        cognitiveLoad: { score: cognitiveLoad.score, details: { level: cognitiveLoad.level, metrics: cognitiveLoad.metrics, reasons: cognitiveLoad.reasons } },
+        persuasion: { score: persuasion.score, details: { framework: persuasion.framework, confidence: persuasion.confidence, phases: persuasion.phases, reasons: persuasion.reasons } },
+    };
+
+    // Weighted average — hook gets highest weight (determines if anyone reads the rest)
+    const weights = {
+        readability: 0.12, structure: 0.10, engagement: 0.12, clarity: 0.10,
+        actionability: 0.10, sentiment: 0.06, hook: 0.18, cognitiveLoad: 0.12, persuasion: 0.10,
+    };
     const overallScore = Math.round(
         Object.entries(weights).reduce((sum, [key, weight]) => sum + dimensions[key].score * weight, 0)
     );
@@ -584,19 +609,16 @@ export function analyzeContent(text, preprocessed = null) {
         passiveVoicePercent: clarity.details.passiveRatio,
         longParagraphs: structure.details.longParagraphs,
         headingCount: structure.details.headingCount,
-    };
-
-    const sentences = splitSentences(text);
-    const ctx = {
-        text,
-        words,
-        sentences,
-        wordCount: words.length,
-        isShortForm: words.length < 250,
+        hookType: hook.hookType,
+        cognitiveLoadLevel: cognitiveLoad.level,
+        persuasionFramework: persuasion.framework,
     };
 
     // Generate suggestions with min 3 enforcement
     const suggestions = generateSuggestions(dimensions, ctx);
+
+    // Generate human-readable explanation
+    const explanation = generateContentExplanation({ overallScore, hook, cognitiveLoad, persuasion, dimensions });
 
     return {
         overallScore,
@@ -605,5 +627,6 @@ export function analyzeContent(text, preprocessed = null) {
         dimensions,
         metrics,
         suggestions,
+        explanation,
     };
 }

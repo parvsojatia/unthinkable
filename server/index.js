@@ -126,6 +126,7 @@ app.post('/api/analyze', upload.single('file'), async (req, res) => {
                 metrics: analysis.metrics,
             },
             suggestions: analysis.suggestions,
+            explanation: analysis.explanation,
         });
     } catch (err) {
         console.error('Analysis error:', err);
@@ -207,6 +208,7 @@ app.post('/api/analyze-url', async (req, res) => {
                 metrics: analysis.metrics,
             },
             suggestions: analysis.suggestions,
+            explanation: analysis.explanation,
         });
     } catch (err) {
         console.error('URL analysis error:', err);

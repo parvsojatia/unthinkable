@@ -10,18 +10,31 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Poppins:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
         rel="stylesheet" />
     <link rel="stylesheet" href="/style.css" />
 </head>
 
 <body>
     <div class="app">
-        <!-- Header -->
+        <!-- Navigation Bar -->
+        <nav class="navbar">
+            <div class="navbar__container">
+                <div class="navbar__brand">
+                    <span class="navbar__icon">📋</span>
+                    <h1 class="navbar__title">ContentPro</h1>
+                </div>
+                <p class="navbar__tagline">Analyze & Improve Your Content</p>
+            </div>
+        </nav>
+
+        <!-- Hero Section -->
         <header class="header">
-            <span class="header__icon">📄</span>
-            <h1 class="header__title">Content Analyzer</h1>
-            <p class="header__subtitle">Upload a file or paste a URL — get concrete suggestions to boost engagement</p>
+            <div class="header__content">
+                <h1 class="header__title">Elevate Your Content</h1>
+                <p class="header__subtitle">Analyze any document, image, or webpage to receive data-driven, actionable
+                    insights for improved readability, engagement, and impact.</p>
+            </div>
         </header>
 
         <!-- Input Mode Tabs -->
@@ -38,11 +51,11 @@
         <div class="input-panel" id="panelFile">
             <div class="upload-zone" id="uploadZone">
                 <input type="file" class="upload-zone__input" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" />
-                <span class="upload-zone__icon">📤</span>
+                <span class="upload-zone__icon">📄</span>
                 <p class="upload-zone__text">
-                    Drag & drop your file here, or <strong>click to browse</strong>
+                    Drag and drop your file, or <strong>click to select</strong>
                 </p>
-                <p class="upload-zone__hint">PDF, PNG, or JPG — up to 10 MB</p>
+                <p class="upload-zone__hint">Supported formats: PDF, PNG, JPG (max 10 MB)</p>
             </div>
 
             <!-- File Info -->
@@ -70,7 +83,7 @@
         <!-- Analyze Button -->
         <button class="analyze-btn" id="analyzeBtn">
             <span class="analyze-btn__spinner"></span>
-            <span class="analyze-btn__text">Analyze Content</span>
+            <span class="analyze-btn__text">Analyze Now</span>
         </button>
 
         <!-- Error -->
@@ -113,6 +126,9 @@
                 <h2 class="suggestions__title">💡 Suggestions</h2>
                 <div id="suggestionList"></div>
             </div>
+
+            <!-- Content Explanation -->
+            <div class="explanation" id="explanationPanel"></div>
         </section>
     </div>
 
