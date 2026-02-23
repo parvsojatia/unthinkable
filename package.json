@@ -4,7 +4,6 @@
   "description": "Local-first, ML-powered content engagement analyzer for PDFs, images, and URLs.",
   "type": "module",
   "author": "Parv Sojatia",
-  "license": "MIT",
   "keywords": [
     "content-analysis",
     "engagement-optimization",
