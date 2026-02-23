@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description"
-        content="Upload PDFs or images and get actionable suggestions to improve your content's engagement, readability, and clarity." />
+        content="Upload files or paste URLs to get actionable suggestions to improve your content's engagement, readability, and clarity." />
     <title>Content Analyzer — Make Your Content More Engaging</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -21,25 +21,50 @@
         <header class="header">
             <span class="header__icon">📄</span>
             <h1 class="header__title">Content Analyzer</h1>
-            <p class="header__subtitle">Upload a PDF or image — get concrete suggestions to boost engagement</p>
+            <p class="header__subtitle">Upload a file or paste a URL — get concrete suggestions to boost engagement</p>
         </header>
 
-        <!-- Upload Zone -->
-        <div class="upload-zone" id="uploadZone">
-            <input type="file" class="upload-zone__input" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" />
-            <span class="upload-zone__icon">📤</span>
-            <p class="upload-zone__text">
-                Drag & drop your file here, or <strong>click to browse</strong>
-            </p>
-            <p class="upload-zone__hint">PDF, PNG, or JPG — up to 10 MB</p>
+        <!-- Input Mode Tabs -->
+        <div class="input-tabs" id="inputTabs">
+            <button class="input-tab input-tab--active" data-mode="file" id="tabFile">
+                📤 Upload File
+            </button>
+            <button class="input-tab" data-mode="url" id="tabUrl">
+                🌐 Paste URL
+            </button>
         </div>
 
-        <!-- File Info -->
-        <div class="file-info" id="fileInfo">
-            <span class="file-info__icon" id="fileIcon">📄</span>
-            <span class="file-info__name" id="fileName"></span>
-            <span class="file-info__size" id="fileSize"></span>
-            <button class="file-info__remove" id="removeFile" title="Remove file">✕</button>
+        <!-- File Upload Mode -->
+        <div class="input-panel" id="panelFile">
+            <div class="upload-zone" id="uploadZone">
+                <input type="file" class="upload-zone__input" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" />
+                <span class="upload-zone__icon">📤</span>
+                <p class="upload-zone__text">
+                    Drag & drop your file here, or <strong>click to browse</strong>
+                </p>
+                <p class="upload-zone__hint">PDF, PNG, or JPG — up to 10 MB</p>
+            </div>
+
+            <!-- File Info -->
+            <div class="file-info" id="fileInfo">
+                <span class="file-info__icon" id="fileIcon">📄</span>
+                <span class="file-info__name" id="fileName"></span>
+                <span class="file-info__size" id="fileSize"></span>
+                <button class="file-info__remove" id="removeFile" title="Remove file">✕</button>
+            </div>
+        </div>
+
+        <!-- URL Input Mode -->
+        <div class="input-panel input-panel--hidden" id="panelUrl">
+            <div class="url-input-group">
+                <div class="url-input-wrapper">
+                    <span class="url-input__icon">🔗</span>
+                    <input type="url" class="url-input" id="urlInput"
+                        placeholder="https://example.com/blog-post or image URL" />
+                    <button class="url-input__clear" id="clearUrl" title="Clear URL">✕</button>
+                </div>
+                <p class="url-input__hint">Web pages, blog posts, articles, or image URLs (PNG, JPG)</p>
+            </div>
         </div>
 
         <!-- Analyze Button -->
@@ -53,6 +78,9 @@
 
         <!-- Results -->
         <section class="results" id="results">
+            <!-- Source Info -->
+            <div class="source-info" id="sourceInfo"></div>
+
             <!-- Overall Score -->
             <div class="score-hero" id="scoreHero">
                 <div class="score-hero__ring">
@@ -73,6 +101,9 @@
 
             <!-- Extraction Metadata -->
             <div class="extraction-meta" id="extractionMeta"></div>
+
+            <!-- Metrics Badges -->
+            <div class="extraction-meta" id="metricsBadges"></div>
 
             <!-- Dimension Cards -->
             <div class="dimensions" id="dimensions"></div>

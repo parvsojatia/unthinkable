@@ -132,6 +132,163 @@ body::before {
     font-weight: 400;
 }
 
+/* ─── Input Mode Tabs ──────────────────────────────────────── */
+
+.input-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 4px;
+    margin-bottom: var(--space-lg);
+    animation: fadeInUp 0.5s ease-out 0.15s both;
+}
+
+.input-tab {
+    flex: 1;
+    padding: var(--space-sm) var(--space-md);
+    border: none;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.input-tab:hover {
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.input-tab--active {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+/* ─── Input Panels ─────────────────────────────────────────── */
+
+.input-panel--hidden {
+    display: none;
+}
+
+/* ─── URL Input ────────────────────────────────────────────── */
+
+.url-input-group {
+    animation: fadeInUp 0.4s ease-out;
+}
+
+.url-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-xl);
+    transition: all 0.3s ease;
+}
+
+.url-input-wrapper:focus-within {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-glow);
+}
+
+.url-input__icon {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.url-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    outline: none;
+}
+
+.url-input::placeholder {
+    color: var(--text-muted);
+}
+
+.url-input__clear {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: var(--space-xs);
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+    opacity: 0.6;
+}
+
+.url-input__clear:hover {
+    color: var(--danger);
+    background: rgba(225, 112, 85, 0.1);
+    opacity: 1;
+}
+
+.url-input__hint {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    margin-top: var(--space-sm);
+    padding-left: var(--space-lg);
+}
+
+/* ─── Source Info Bar ───────────────────────────────────────── */
+
+.source-info {
+    display: none;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-md);
+    animation: fadeInUp 0.4s ease-out;
+}
+
+.source-info--visible {
+    display: flex;
+}
+
+.source-info__badge {
+    padding: 3px 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--accent-light);
+    white-space: nowrap;
+}
+
+.source-info__link {
+    color: var(--accent-light);
+    text-decoration: none;
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.source-info__link:hover {
+    text-decoration: underline;
+}
+
+.source-info__name {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* ─── Upload Zone ──────────────────────────────────────────── */
 
 .upload-zone {
@@ -579,6 +736,18 @@ body::before {
     color: var(--accent-light);
     font-size: 0.9rem;
     font-style: italic;
+}
+
+.suggestion__example {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-family: var(--font-mono);
+    background: rgba(255, 255, 255, 0.02);
+    border-left: 2px solid var(--border);
+    padding: var(--space-sm) var(--space-md);
+    margin-top: var(--space-sm);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    line-height: 1.5;
 }
 
 /* ─── Animations ───────────────────────────────────────────── */

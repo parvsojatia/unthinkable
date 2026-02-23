@@ -1,5 +1,10 @@
 // ─── DOM Elements ─────────────────────────────────────────
 
+const tabFile = document.getElementById('tabFile');
+const tabUrl = document.getElementById('tabUrl');
+const panelFile = document.getElementById('panelFile');
+const panelUrl = document.getElementById('panelUrl');
+
 const uploadZone = document.getElementById('uploadZone');
 const fileInput = document.getElementById('fileInput');
 const fileInfo = document.getElementById('fileInfo');
@@ -7,11 +12,43 @@ const fileIcon = document.getElementById('fileIcon');
 const fileName = document.getElementById('fileName');
 const fileSize = document.getElementById('fileSize');
 const removeFileBtn = document.getElementById('removeFile');
+
+const urlInput = document.getElementById('urlInput');
+const clearUrlBtn = document.getElementById('clearUrl');
+
 const analyzeBtn = document.getElementById('analyzeBtn');
 const errorBox = document.getElementById('errorBox');
 const results = document.getElementById('results');
 
 let selectedFile = null;
+let activeMode = 'file'; // 'file' or 'url'
+
+// ─── Tab Switching ────────────────────────────────────────
+
+tabFile.addEventListener('click', () => switchMode('file'));
+tabUrl.addEventListener('click', () => switchMode('url'));
+
+function switchMode(mode) {
+    activeMode = mode;
+
+    tabFile.classList.toggle('input-tab--active', mode === 'file');
+    tabUrl.classList.toggle('input-tab--active', mode === 'url');
+
+    panelFile.classList.toggle('input-panel--hidden', mode !== 'file');
+    panelUrl.classList.toggle('input-panel--hidden', mode !== 'url');
+
+    // Show analyze button if there's input in the active mode
+    updateAnalyzeButton();
+    hideError();
+    results.classList.remove('results--visible');
+}
+
+function updateAnalyzeButton() {
+    const hasInput =
+        (activeMode === 'file' && selectedFile) ||
+        (activeMode === 'url' && urlInput.value.trim().length > 0);
+    analyzeBtn.classList.toggle('analyze-btn--visible', hasInput);
+}
 
 // ─── File Selection ───────────────────────────────────────
 
@@ -43,7 +80,6 @@ removeFileBtn.addEventListener('click', (e) => {
 });
 
 function selectFile(file) {
-    // Client-side validation
     const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
     if (!allowedTypes.includes(file.type)) {
         showError('Unsupported file type. Please upload a PDF, PNG, or JPG.');
@@ -57,12 +93,11 @@ function selectFile(file) {
     selectedFile = file;
     hideError();
 
-    // Update file info bar
     fileIcon.textContent = file.type === 'application/pdf' ? '📕' : '🖼️';
     fileName.textContent = file.name;
     fileSize.textContent = formatSize(file.size);
     fileInfo.classList.add('file-info--visible');
-    analyzeBtn.classList.add('analyze-btn--visible');
+    updateAnalyzeButton();
     results.classList.remove('results--visible');
 }
 
@@ -70,7 +105,7 @@ function clearFile() {
     selectedFile = null;
     fileInput.value = '';
     fileInfo.classList.remove('file-info--visible');
-    analyzeBtn.classList.remove('analyze-btn--visible');
+    updateAnalyzeButton();
     results.classList.remove('results--visible');
     hideError();
 }
@@ -81,9 +116,30 @@ function formatSize(bytes) {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
+// ─── URL Input ────────────────────────────────────────────
+
+urlInput.addEventListener('input', () => updateAnalyzeButton());
+urlInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') analyzeBtn.click();
+});
+
+clearUrlBtn.addEventListener('click', () => {
+    urlInput.value = '';
+    updateAnalyzeButton();
+    hideError();
+});
+
 // ─── Analyze ──────────────────────────────────────────────
 
 analyzeBtn.addEventListener('click', async () => {
+    if (activeMode === 'file') {
+        await analyzeFile();
+    } else {
+        await analyzeUrl();
+    }
+});
+
+async function analyzeFile() {
     if (!selectedFile) return;
 
     setLoading(true);
@@ -94,26 +150,52 @@ analyzeBtn.addEventListener('click', async () => {
         const formData = new FormData();
         formData.append('file', selectedFile);
 
-        const res = await fetch('/api/analyze', {
-            method: 'POST',
-            body: formData,
-        });
-
+        const res = await fetch('/api/analyze', { method: 'POST', body: formData });
         const data = await res.json();
 
         if (!res.ok) {
-            showError(data.error || 'Analysis failed. Please try again.');
+            showError(data.error || 'Analysis failed.');
             return;
         }
 
-        renderResults(data);
+        renderResults(data, 'file');
     } catch (err) {
         console.error(err);
-        showError('Network error — is the backend running? Check that the server is started.');
+        showError('Network error — is the backend running?');
     } finally {
         setLoading(false);
     }
-});
+}
+
+async function analyzeUrl() {
+    const url = urlInput.value.trim();
+    if (!url) return;
+
+    setLoading(true);
+    hideError();
+    results.classList.remove('results--visible');
+
+    try {
+        const res = await fetch('/api/analyze-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            showError(data.error || 'URL analysis failed.');
+            return;
+        }
+
+        renderResults(data, 'url');
+    } catch (err) {
+        console.error(err);
+        showError('Network error — is the backend running?');
+    } finally {
+        setLoading(false);
+    }
+}
 
 function setLoading(loading) {
     analyzeBtn.disabled = loading;
@@ -135,15 +217,35 @@ function hideError() {
 
 // ─── Render Results ───────────────────────────────────────
 
-function renderResults(data) {
-    const { analysis, suggestions, extraction, requestId, filename } = data;
-    const { overallScore, wordCount, sentenceCount, dimensions } = analysis;
+function renderResults(data, source) {
+    const { analysis, suggestions, extraction, requestId } = data;
+    const { overallScore, wordCount, sentenceCount, dimensions, metrics } = analysis;
+
+    // Source info
+    const sourceInfoEl = document.getElementById('sourceInfo');
+    if (sourceInfoEl) {
+        if (source === 'url') {
+            const title = data.pageTitle || data.sourceUrl;
+            const url = data.sourceUrl;
+            sourceInfoEl.innerHTML = `
+                <span class="source-info__badge">🌐 URL</span>
+                <a href="${url}" target="_blank" rel="noopener" class="source-info__link">${title}</a>
+            `;
+        } else {
+            sourceInfoEl.innerHTML = `
+                <span class="source-info__badge">📄 File</span>
+                <span class="source-info__name">${data.filename}</span>
+            `;
+        }
+        sourceInfoEl.classList.add('source-info--visible');
+    }
 
     // Score ring
     animateScore(overallScore);
     document.getElementById('wordCount').textContent = wordCount.toLocaleString();
     document.getElementById('sentenceCount').textContent = sentenceCount.toLocaleString();
-    document.getElementById('resultFilename').textContent = filename;
+    const resultFilename = document.getElementById('resultFilename');
+    resultFilename.textContent = source === 'url' ? (data.pageTitle || 'URL') : (data.filename || '');
 
     // Extraction metadata
     const metaEl = document.getElementById('extractionMeta');
@@ -152,11 +254,12 @@ function renderResults(data) {
             'pdf-parse': '📄 Native PDF',
             'tesseract-ocr': '🔍 Tesseract OCR',
             'pdf-parse+ocr-fallback': '🔄 PDF → OCR Fallback',
+            'pdf-parse (sparse)': '⚠️ Scanned PDF (limited text)',
+            'web-scrape': '🌐 Web Scrape',
+            'url-image-ocr': '🔍 Image URL → OCR',
         };
         const method = methodLabel[extraction.extraction_method] || extraction.extraction_method;
-        const confidence = extraction.confidence_estimate
-            ? `${extraction.confidence_estimate}%`
-            : '—';
+        const confidence = extraction.confidence_estimate ? `${extraction.confidence_estimate}%` : '—';
         const pages = extraction.page_count || '—';
 
         metaEl.innerHTML = `
@@ -168,16 +271,32 @@ function renderResults(data) {
         metaEl.classList.add('extraction-meta--visible');
     }
 
+    // Metrics bar
+    const metricsEl = document.getElementById('metricsBadges');
+    if (metricsEl && metrics) {
+        const toneColors = {
+            'positive': 'var(--success)', 'mostly positive': 'var(--success)',
+            'neutral': 'var(--text-secondary)',
+            'mostly negative': 'var(--warning)', 'negative': 'var(--danger)',
+        };
+        const toneColor = toneColors[metrics.toneLabel] || 'var(--text-secondary)';
+        metricsEl.innerHTML = `
+            <span style="border-color: ${toneColor}" title="Detected tone">🎭 ${metrics.toneLabel}</span>
+            <span title="Readability level">📚 ${metrics.readabilityCategory}</span>
+            ${metrics.emojiCount > 0 ? `<span title="Emojis found">😀 ${metrics.emojiCount} emojis</span>` : ''}
+            ${metrics.hashtagCount > 0 ? `<span title="Hashtags found"># ${metrics.hashtagCount} hashtags</span>` : ''}
+            <span title="Grade level">🎓 grade ${metrics.gradeLevel || '?'}</span>
+        `;
+        metricsEl.classList.add('extraction-meta--visible');
+    }
+
     // Dimension cards
     const dimsContainer = document.getElementById('dimensions');
     dimsContainer.innerHTML = '';
 
     const dimIcons = {
-        readability: '📖',
-        structure: '🏗️',
-        engagement: '🔥',
-        clarity: '💎',
-        actionability: '🎯',
+        readability: '📖', structure: '🏗️', engagement: '🔥',
+        clarity: '💎', actionability: '🎯', sentiment: '🎭',
     };
 
     for (const [name, dim] of Object.entries(dimensions)) {
@@ -193,11 +312,8 @@ function renderResults(data) {
             </div>
         `;
         dimsContainer.appendChild(card);
-
-        // Animate bar fill
         requestAnimationFrame(() => {
-            const fill = card.querySelector('.dim-card__bar-fill');
-            fill.style.width = dim.score + '%';
+            card.querySelector('.dim-card__bar-fill').style.width = dim.score + '%';
         });
     }
 
@@ -219,6 +335,7 @@ function renderResults(data) {
                 <p class="suggestion__what">${s.what}</p>
                 <p class="suggestion__why">${s.why}</p>
                 <p class="suggestion__how">💡 ${s.how}</p>
+                ${s.example ? `<p class="suggestion__example">📝 ${s.example}</p>` : ''}
             `;
             suggestionList.appendChild(el);
         }
@@ -233,16 +350,11 @@ function renderResults(data) {
 function animateScore(target) {
     const ring = document.getElementById('scoreRing');
     const valueEl = document.getElementById('scoreValue');
-    const circumference = 2 * Math.PI * 70; // r=70
-
-    // Set the ring color
+    const circumference = 2 * Math.PI * 70;
     ring.style.stroke = scoreColor(target);
-
-    // Animate ring
     const offset = circumference - (target / 100) * circumference;
     ring.style.strokeDashoffset = offset;
 
-    // Animate number
     let current = 0;
     const duration = 1500;
     const start = performance.now();
@@ -250,17 +362,12 @@ function animateScore(target) {
     function tick(now) {
         const elapsed = now - start;
         const progress = Math.min(elapsed / duration, 1);
-        // Ease out cubic
         const eased = 1 - Math.pow(1 - progress, 3);
         current = Math.round(eased * target);
         valueEl.textContent = current;
         valueEl.style.color = scoreColor(current);
-
-        if (progress < 1) {
-            requestAnimationFrame(tick);
-        }
+        if (progress < 1) requestAnimationFrame(tick);
     }
-
     requestAnimationFrame(tick);
 }
 
