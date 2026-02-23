@@ -63,9 +63,4 @@ npm run dev
 - `main.js`: Frontend state management and dashboard rendering.
 - `style.css`: Modern design system and dashboard layouts.
 
----
-
-## ⚖️ License
-
-MIT © [Parv Sojatia](https://github.com/parvsojatia)
 
