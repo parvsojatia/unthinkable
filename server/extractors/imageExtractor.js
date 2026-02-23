@@ -15,7 +15,11 @@ import { createWorker } from 'tesseract.js';
 export async function extractFromImage(buffer) {
     let worker;
     try {
-        worker = await createWorker('eng');
+        const publicPath = (await import('path')).resolve('./public');
+        worker = await createWorker('eng', 1, {
+            langPath: publicPath,
+            cachePath: publicPath,
+        });
         const { data } = await worker.recognize(buffer);
         return {
             extracted_text: data.text.trim(),
