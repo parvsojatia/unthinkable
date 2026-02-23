@@ -214,16 +214,19 @@ app.use((err, _req, res, _next) => {
 
 // ─── Start Server ─────────────────────────────────────────
 
-app.listen(PORT, async () => {
-    console.log(`\n  🚀 Content Analyzer API running on http://localhost:${PORT}`);
-    console.log(`  📋 Health check:     GET  http://localhost:${PORT}/api/health`);
-    console.log(`  📤 Upload only:      POST http://localhost:${PORT}/api/upload`);
-    console.log(`  🔬 File analysis:    POST http://localhost:${PORT}/api/analyze`);
-    console.log(`  🌐 URL analysis:     POST http://localhost:${PORT}/api/analyze-url\n`);
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
+    app.listen(PORT, async () => {
+        console.log(`\n  🚀 Content Analyzer API running on http://localhost:${PORT}`);
+        console.log(`  📋 Health check:     GET  http://localhost:${PORT}/api/health`);
+        console.log(`  🔬 File analysis:    POST http://localhost:${PORT}/api/analyze`);
+        console.log(`  🌐 URL analysis:     POST http://localhost:${PORT}/api/analyze-url\n`);
 
-    // Load ML models asynchronously (server is already accepting requests)
-    const modelsLoaded = await initModels();
-    if (modelsLoaded) {
-        await initCentroids();
-    }
-});
+        // Load ML models asynchronously (server is already accepting requests)
+        const modelsLoaded = await initModels();
+        if (modelsLoaded) {
+            await initCentroids();
+        }
+    });
+}
+
+export default app;

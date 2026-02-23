@@ -13,10 +13,12 @@
 
 import { pipeline, env } from '@xenova/transformers';
 
-// Disable remote model downloads in production if desired
+// Disable local models when running on Vercel to avoid large bundle issues
+const isVercel = !!process.env.VERCEL;
+env.allowLocalModels = !isVercel;
 env.allowRemoteModels = true;
-// Use local cache to avoid re-downloading
-env.cacheDir = './.model_cache';
+// Use local cache directory for dev
+env.cacheDir = isVercel ? '/tmp/.model_cache' : './.model_cache';
 
 let sentimentPipeline = null;
 let embeddingPipeline = null;

@@ -5,9 +5,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const TEMP_DIR = path.resolve(__dirname, '..', '..', 'uploads');
+// Vercel only allows writes to /tmp
+const TEMP_DIR = process.env.VERCEL
+    ? '/tmp'
+    : path.resolve(__dirname, '..', '..', 'uploads');
 
-// Ensure temp directory exists
+// Ensure temp directory exists (not strictly necessary for /tmp but good practice)
 if (!fs.existsSync(TEMP_DIR)) {
     fs.mkdirSync(TEMP_DIR, { recursive: true });
 }

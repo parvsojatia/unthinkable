@@ -15,10 +15,15 @@ import { createWorker } from 'tesseract.js';
 export async function extractFromImage(buffer) {
     let worker;
     try {
-        const publicPath = (await import('path')).resolve('./public');
+        const isVercel = !!process.env.VERCEL;
+        // In Vercel, the public directory is bundled differently
+        const publicPath = isVercel
+            ? path.join(process.cwd(), 'public')
+            : path.resolve('./public');
+
         worker = await createWorker('eng', 1, {
             langPath: publicPath,
-            cachePath: publicPath,
+            cachePath: isVercel ? '/tmp' : publicPath,
         });
         const { data } = await worker.recognize(buffer);
         return {
