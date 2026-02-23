@@ -68,11 +68,20 @@ function extractTextFromHTML(html) {
     const $ = cheerio.load(html);
 
     // Remove non-content elements
-    $('script, style, nav, footer, header, aside, iframe, noscript, svg, form, button, input, select, textarea').remove();
+    $('script, style, nav, footer, header, aside, iframe, noscript, svg, form, button, input, select, textarea, code, pre').remove();
     $('[role="navigation"], [role="banner"], [role="complementary"], [aria-hidden="true"]').remove();
 
+    // Aggressive boilerplate removal for complex SPAs like LinkedIn
+    $('.global-footer, #globalfooter, .directory, .sr-only, [data-test-id="footer"], .feed-shared-update-v2__control-menu, .feed-shared-actor').remove();
+
     // Try to find main content area
-    let contentEl = $('article, [role="main"], main, .post-content, .article-content, .entry-content, #content').first();
+    let contentEl = $('article, .core-section-container, .feed-shared-update-v2, [data-test-id="post-content"]').first();
+    if (contentEl.length === 0) {
+        contentEl = $('[role="main"], main').first();
+    }
+    if (contentEl.length === 0) {
+        contentEl = $('.post-content, .article-content, .entry-content, #content').first();
+    }
     if (contentEl.length === 0) {
         contentEl = $('body');
     }

@@ -18,16 +18,18 @@
 <body>
     <div class="app">
         <!-- Header -->
-        <header class="header">
-            <span class="header__icon">📄</span>
-            <h1 class="header__title">Content Analyzer</h1>
-            <p class="header__subtitle">Upload a file or paste a URL — get concrete suggestions to boost engagement</p>
+        <header class="header" id="mainHeader">
+            <div class="header__brand">
+                <span class="header__icon">📄</span>
+                <h1 class="header__title">Content Analyzer</h1>
+            </div>
+            <p class="header__subtitle" id="headerSubtitle">Upload a file or paste a URL — get concrete suggestions to
+                boost engagement</p>
+            <!-- Top Right Actions -->
+            <button class="new-analysis-btn" id="newAnalysisBtn" title="Start a new analysis">
+                <span>➕</span> New Analysis
+            </button>
         </header>
-
-        <!-- Top Right Actions -->
-        <button class="new-analysis-btn" id="newAnalysisBtn" title="Start a new analysis">
-            <span>➕</span> New Analysis
-        </button>
 
         <div id="inputArea">
             <!-- Input Mode Tabs -->
@@ -105,7 +107,7 @@
                             </svg>
                             <span class="score-hero__value" id="scoreValue">0</span>
                         </div>
-                        <p class="score-hero__label">Overall Engagement Score</p>
+                        <p class="score-hero__label">Overall Score</p>
                         <div class="tone-badge" id="toneBadge"></div>
                     </div>
                 </div>

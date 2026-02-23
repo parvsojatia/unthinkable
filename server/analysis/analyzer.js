@@ -289,7 +289,7 @@ const CTA_PATTERNS = [
 // Emoji regex (covers most common emoji ranges)
 const EMOJI_REGEX = /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{FE00}-\u{FE0F}]|[\u{1F900}-\u{1F9FF}]/gu;
 
-const HASHTAG_REGEX = /#[a-zA-Z]\w{1,30}/g;
+const HASHTAG_REGEX = /#\w{1,50}/g;
 
 function analyzeEngagement(text) {
     const words = splitWords(text);

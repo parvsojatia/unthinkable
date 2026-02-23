@@ -99,20 +99,21 @@ body::before {
     z-index: 1;
     max-width: 900px;
     margin: 0 auto;
-    padding: var(--space-xl) var(--space-lg);
+    padding: var(--space-md) var(--space-lg);
 }
 
 /* ─── Header ───────────────────────────────────────────────── */
 
 .header {
     text-align: center;
-    margin-bottom: var(--space-3xl);
+    margin-bottom: var(--space-lg);
     animation: fadeInDown 0.6s ease-out;
+    position: relative;
 }
 
 .header__icon {
     font-size: 3rem;
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--space-sm);
     display: block;
 }
 
@@ -130,6 +131,46 @@ body::before {
     color: var(--text-secondary);
     font-size: 1.05rem;
     font-weight: 400;
+}
+
+/* ─── Header Navbar Mode (Results View) ────────────────────── */
+
+.header--navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-xl);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+}
+
+.header__brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.header--navbar .header__brand {
+    gap: var(--space-xs);
+}
+
+.header--navbar .header__icon {
+    font-size: 1.8rem;
+    margin-bottom: 0;
+}
+
+.header--navbar .header__title {
+    font-size: 1.5rem;
+    margin-bottom: 0;
+}
+
+.header--navbar .header__subtitle {
+    display: none;
+}
+
+.header--navbar .new-analysis-btn {
+    position: static;
 }
 
 /* ─── Input Mode Tabs ──────────────────────────────────────── */
@@ -175,8 +216,8 @@ body::before {
 .new-analysis-btn {
     display: none;
     position: absolute;
-    top: var(--space-xl);
-    right: var(--space-lg);
+    top: 0;
+    right: 0;
     padding: var(--space-sm) var(--space-md);
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -334,7 +375,7 @@ body::before {
     position: relative;
     border: 2px dashed var(--border);
     border-radius: var(--radius-xl);
-    padding: var(--space-3xl) var(--space-xl);
+    padding: var(--space-xl);
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -360,7 +401,7 @@ body::before {
 
 .upload-zone__icon {
     font-size: 3.5rem;
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--space-md);
     display: block;
     transition: transform 0.3s ease;
 }
@@ -397,11 +438,11 @@ body::before {
     display: none;
     align-items: center;
     gap: var(--space-md);
-    padding: var(--space-md) var(--space-lg);
+    padding: var(--space-sm) var(--space-md);
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    margin-top: var(--space-lg);
+    margin-top: var(--space-md);
     animation: fadeInUp 0.4s ease-out;
 }
 
@@ -450,12 +491,12 @@ body::before {
     display: none;
     width: 100%;
     padding: var(--space-md) var(--space-xl);
-    margin-top: var(--space-lg);
-    background: linear-gradient(135deg, var(--accent), #7c6cf0);
+    margin-top: var(--space-md);
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
     color: white;
     border: none;
-    border-radius: var(--radius-md);
-    font-size: 1.05rem;
+    border-radius: var(--radius-lg);
+    font-size: 1.1rem;
     font-weight: 600;
     font-family: var(--font-sans);
     cursor: pointer;
@@ -521,7 +562,7 @@ body::before {
 
 .results {
     display: none;
-    margin-top: var(--space-2xl);
+    margin-top: var(--space-md);
     animation: fadeInUp 0.6s ease-out;
 }
 
@@ -575,8 +616,10 @@ body::before {
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-xl);
-    padding: var(--space-xl);
+    padding: var(--space-lg);
     backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
 }
 
 .dashboard__panel-title {
@@ -588,20 +631,24 @@ body::before {
     letter-spacing: 0.05em;
 }
 
-/* Verdict Panel (Left) */
-
 .dashboard__panel--verdict {
     text-align: center;
-    display: flex;
-    flex-direction: column;
     align-items: center;
+    justify-content: center;
 }
 
 .score-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: 0;
+}
+
+.score-hero__ring {
     position: relative;
-    width: 160px;
-    height: 160px;
-    margin: 0 auto var(--space-lg);
+    width: 140px;
+    height: 140px;
 }
 
 .score-hero__ring svg {

@@ -21,6 +21,7 @@ const errorBox = document.getElementById('errorBox');
 const results = document.getElementById('results');
 const inputArea = document.getElementById('inputArea');
 const newAnalysisBtn = document.getElementById('newAnalysisBtn');
+const mainHeader = document.getElementById('mainHeader');
 
 let selectedFile = null;
 let activeMode = 'file'; // 'file' or 'url'
@@ -31,6 +32,7 @@ newAnalysisBtn.addEventListener('click', () => {
     results.classList.remove('results--visible');
     inputArea.classList.remove('input-area--hidden');
     newAnalysisBtn.classList.remove('new-analysis-btn--visible');
+    mainHeader.classList.remove('header--navbar');
     hideError();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 });
@@ -180,8 +182,16 @@ async function analyzeFile() {
 }
 
 async function analyzeUrl() {
-    const url = urlInput.value.trim();
+    let url = urlInput.value.trim();
     if (!url) return;
+
+    // Handle case where user pasted an embedded iframe code snippet
+    if (url.toLowerCase().startsWith('<iframe')) {
+        const srcMatch = url.match(/src=["']([^"']+)["']/i);
+        if (srcMatch && srcMatch[1]) {
+            url = srcMatch[1];
+        }
+    }
 
     setLoading(true);
     hideError();
@@ -233,6 +243,7 @@ function renderResults(data, source) {
     // Transition UI to results mode
     inputArea.classList.add('input-area--hidden');
     newAnalysisBtn.classList.add('new-analysis-btn--visible');
+    mainHeader.classList.add('header--navbar');
 
     const { analysis, suggestions, extraction, requestId } = data;
     const { overallScore, wordCount, sentenceCount, dimensions, metrics } = analysis;
