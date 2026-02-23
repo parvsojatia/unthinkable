@@ -65,13 +65,4 @@ npm run dev
 
 ---
 
-## 📜 Technical Manifesto
-
-This project prioritizes **Explainable AI**. Every metric is backed by either clear academic formulas (readability) or semantic similarity to proven archetypes. We favor local compute for privacy and zero horizontal latency.
-
----
-
-## ⚖️ License
-
-MIT © [Parv Sojatia](https://github.com/parvsojatia)
 
