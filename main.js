@@ -149,6 +149,7 @@ async function analyzeFile() {
     try {
         const formData = new FormData();
         formData.append('file', selectedFile);
+        formData.append('platform', document.getElementById('platformSelect').value);
 
         const res = await fetch('/api/analyze', { method: 'POST', body: formData });
         const data = await res.json();
@@ -176,10 +177,11 @@ async function analyzeUrl() {
     results.classList.remove('results--visible');
 
     try {
+        const platform = document.getElementById('platformSelect').value;
         const res = await fetch('/api/analyze-url', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url }),
+            body: JSON.stringify({ url, platform }),
         });
         const data = await res.json();
 
@@ -218,8 +220,9 @@ function hideError() {
 // ─── Render Results ───────────────────────────────────────
 
 function renderResults(data, source) {
-    const { analysis, suggestions, extraction, requestId, explanation } = data;
-    const { overallScore, wordCount, sentenceCount, dimensions, metrics } = analysis;
+    const { analysis, extraction, requestId, explanation } = data;
+    const { overallScore, platformScore, platformDelta, wordCount, sentenceCount, dimensions, metrics } = analysis;
+    const suggestions = [...(data.platformSuggestions || []), ...(data.suggestions || [])];
 
     // Source info
     const sourceInfoEl = document.getElementById('sourceInfo');
@@ -241,7 +244,24 @@ function renderResults(data, source) {
     }
 
     // Score ring
-    animateScore(overallScore);
+    animateScore(platformScore !== undefined ? platformScore : overallScore);
+
+    // Platform Score UI
+    const platformContainer = document.getElementById('platformScoreContainer');
+    const pScoreVal = document.getElementById('platformScoreValue');
+    const pDeltaVal = document.getElementById('platformDeltaValue');
+
+    if (platformScore !== undefined && platformScore !== overallScore) {
+        pScoreVal.textContent = platformScore;
+        const deltaLabel = platformDelta >= 0 ? `+${platformDelta}` : `${platformDelta}`;
+        pDeltaVal.textContent = `(${deltaLabel} vs generic)`;
+        pDeltaVal.style.color = platformDelta >= 0 ? 'var(--success)' : 'var(--danger)';
+        pScoreVal.style.color = scoreColor(platformScore);
+        platformContainer.style.display = 'block';
+    } else {
+        platformContainer.style.display = 'none';
+    }
+
     document.getElementById('wordCount').textContent = wordCount.toLocaleString();
     document.getElementById('sentenceCount').textContent = sentenceCount.toLocaleString();
     const resultFilename = document.getElementById('resultFilename');

@@ -27,3 +27,33 @@ Instead of training a custom classification model on top of the embeddings (whic
 ## Lessons Learned
 1. **Never block the main thread**: Initializing the ML model blocks the thread briefly, so we do it *after* setting up the Express routes but wrap it in an asynchronous module. The `initEmbeddings()` promise does not stall `app.listen`, meaning the server is immediately responsive while the AI loads in the background.
 2. **Deterministic Overrides**: To maintain predictability, while we use semantic similarity to find *meaning*, we still use deterministic regex as the primary filter for specific things (e.g., checking for a `?` guarantees a question hook first before running any heavy embedding logic). It's a hybrid approach that gives the best of both worlds.
+
+---
+
+# For Parv: Platform-Aware Analysis
+
+The objective here was to modify the generic standard scoring to account for the unique environments of different social platforms (e.g., TikTok vs. LinkedIn).
+
+## Strategy: Delta Profiles
+We preserved the core "neutral" evaluation pipeline (`contentSignals.js`), meaning the raw scores (0-100) are never mutated. This maintains deterministic consistency. 
+Instead, we implemented `platformProfiles.js`, which acts as a secondary pass over the dimensions.
+
+### 1. Dynamic Weighting
+The neutral `analyzer.js` uses a static set of dimension weights. `platformProfiles.js` re-weighs these. For instance, TikTok heavily weights the `hook` (0.25) versus LinkedIn weighting `structure` more (0.15).
+
+### 2. Constraint Gates
+We implemented "Gates": hard constraints that heavily penalize scores if broken. This avoids writing "if LinkedIn do X" spaghetti code inside the core analyzer. Instead, platforms define their own logic via lambdas:
+```javascript
+{
+    dimension: 'wordCount', 
+    condition: (val) => val > 50,
+    impact: -20,
+    template: 'This content might exceed the standard 280-character limit on X...'
+}
+```
+
+### 3. Delta Scoring
+The UI displays the `baseScore`, but emphasizes the `platformScore` and the `platformDelta`. This is a conscious UX choice to emphasize to the user *how* adapting to a specific platform changes their expected success.
+
+## Lessons Learned
+- **Separation of Concerns**: By injecting platform logic *after* the raw signal analysis but *before* the final suggestion collation, we created a system that is incredibly easy to scale. If we need to add "Threads" tomorrow, we literally only need to add 1 object to `platformProfiles.js`. No core logic needs to be touched.

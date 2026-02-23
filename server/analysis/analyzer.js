@@ -9,6 +9,7 @@
  */
 
 import { analyzeHook, analyzeCognitiveLoad, detectPersuasion, generateContentExplanation } from './contentSignals.js';
+import { evaluatePlatform } from './platformProfiles.js';
 
 // ─── Helpers ──────────────────────────────────────────────
 
@@ -543,15 +544,18 @@ function generateSuggestions(dimensions, ctx) {
  * @param {object} [preprocessed] - Optional preprocessed data from preprocessor
  * @returns {Promise<{ overallScore, dimensions, metrics, suggestions, wordCount, sentenceCount }>}
  */
-export async function analyzeContent(text, preprocessed = null) {
+export async function analyzeContent(text, preprocessed = null, platform = 'linkedin') {
     if (!text || text.trim().length === 0) {
         return {
             overallScore: 0,
+            platformScore: null,
+            platformDelta: null,
             wordCount: 0,
             sentenceCount: 0,
             dimensions: {},
             metrics: {},
             suggestions: [],
+            platformSuggestions: [],
             error: 'No text content found to analyze.',
         };
     }
@@ -620,13 +624,22 @@ export async function analyzeContent(text, preprocessed = null) {
     // Generate human-readable explanation
     const explanation = generateContentExplanation({ overallScore, hook, cognitiveLoad, persuasion, dimensions });
 
+    // Platform Analysis
+    const platformResult = evaluatePlatform(platform, dimensions, ctx);
+    const platformScore = platformResult ? platformResult.platformScore : overallScore;
+    const platformDelta = platformResult ? platformScore - overallScore : 0;
+    const platformSuggestions = platformResult ? platformResult.platformSuggestions : [];
+
     return {
         overallScore,
+        platformScore,
+        platformDelta,
         wordCount: words.length,
         sentenceCount: sentences.length,
         dimensions,
         metrics,
         suggestions,
+        platformSuggestions,
         explanation,
     };
 }

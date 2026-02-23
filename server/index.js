@@ -96,8 +96,11 @@ app.post('/api/analyze', upload.single('file'), async (req, res) => {
         // ── Step 2: Preprocess (Phase 5) ──────────────────
         const preprocessed = preprocessText(extraction.extracted_text);
 
-        // ── Step 3: Analyze (Phase 6) ─────────────────────
-        const analysis = await analyzeContent(preprocessed.normalizedText, preprocessed);
+        // ── Step 3: Analyze (Phase 6 & 7) ─────────────────────
+        const platform = req.body.platform || 'linkedin';
+        const analysis = await analyzeContent(preprocessed.normalizedText, preprocessed, platform);
+
+        console.log(`[Instrumentation] Platform: ${platform} | Base Score: ${analysis.overallScore} | Platform Score: ${analysis.platformScore} | Delta: ${analysis.platformDelta}`);
 
         // ── Step 4: Respond ───────────────────────────────
         res.json({
@@ -121,12 +124,15 @@ app.post('/api/analyze', upload.single('file'), async (req, res) => {
             },
             analysis: {
                 overallScore: analysis.overallScore,
+                platformScore: analysis.platformScore,
+                platformDelta: analysis.platformDelta,
                 wordCount: analysis.wordCount,
                 sentenceCount: analysis.sentenceCount,
                 dimensions: analysis.dimensions,
                 metrics: analysis.metrics,
             },
             suggestions: analysis.suggestions,
+            platformSuggestions: analysis.platformSuggestions,
             explanation: analysis.explanation,
         });
     } catch (err) {
@@ -180,7 +186,11 @@ app.post('/api/analyze-url', async (req, res) => {
 
         // Preprocess + Analyze
         const preprocessed = preprocessText(extractedText);
-        const analysis = await analyzeContent(preprocessed.normalizedText, preprocessed);
+
+        const platform = req.body.platform || 'linkedin';
+        const analysis = await analyzeContent(preprocessed.normalizedText, preprocessed, platform);
+
+        console.log(`  📊 [URL] Platform: ${platform} | Base: ${analysis.overallScore} | Platform: ${analysis.platformScore} | Delta: ${analysis.platformDelta}`);
 
         res.json({
             requestId,
@@ -203,12 +213,15 @@ app.post('/api/analyze-url', async (req, res) => {
             },
             analysis: {
                 overallScore: analysis.overallScore,
+                platformScore: analysis.platformScore,
+                platformDelta: analysis.platformDelta,
                 wordCount: analysis.wordCount,
                 sentenceCount: analysis.sentenceCount,
                 dimensions: analysis.dimensions,
                 metrics: analysis.metrics,
             },
             suggestions: analysis.suggestions,
+            platformSuggestions: analysis.platformSuggestions,
             explanation: analysis.explanation,
         });
     } catch (err) {

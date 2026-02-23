@@ -63,7 +63,34 @@ describe('analyzeContent integration', () => {
 
     it('generates at least 3 suggestions for imperfect content', async () => {
         const text = 'things are nice and stuff happens sometimes in the world we live in today it is very interesting';
-        const result = await analyzeContent(text);
+        const result = await analyzeContent(text, null, 'linkedin');
         expect(result.suggestions.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('generates different suggestions and scores between platforms for the same text', async () => {
+        const text = `
+            Welcome to my brand new startup story! 
+            Today I am going to share everything.
+            I learned a lot and it is quite interesting how things work sometimes, especially when you consider macroeconomics.
+            What do you think? Drop a comment below!
+            We are launching next week so link in bio.
+        `;
+
+        // Preprocess just a dummy object
+        const mockCtx = {
+            stats: { totalChars: 100, totalWords: 30, totalSentences: 5, totalParagraphs: 5, totalHeadings: 0 },
+            normalizedText: text
+        };
+
+        const linkedinResult = await analyzeContent(text, mockCtx, 'linkedin');
+        const tiktokResult = await analyzeContent(text, mockCtx, 'tiktok');
+
+        // The exact scores and suggestions should differ because TikTok weights hooks much higher
+        // and has different specific constraints than LinkedIn.
+        expect(linkedinResult.platformScore).not.toBe(tiktokResult.platformScore);
+
+        // Ensure platformSuggestions are returned
+        expect(linkedinResult.platformSuggestions).toBeInstanceOf(Array);
+        expect(tiktokResult.platformSuggestions).toBeInstanceOf(Array);
     });
 });

@@ -80,6 +80,22 @@
             </div>
         </div>
 
+        <!-- Platform Selection -->
+        <div class="platform-selector" style="margin: 0 auto 1.5rem auto; text-align: center;">
+            <label for="platformSelect"
+                style="font-weight: 500; font-size: 0.9rem; color: var(--text-muted); margin-right: 0.5rem;">Target
+                Platform:</label>
+            <select id="platformSelect"
+                style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem; cursor: pointer; outline: none;">
+                <option value="linkedin">LinkedIn</option>
+                <option value="x">X (Twitter)</option>
+                <option value="tiktok">TikTok</option>
+                <option value="instagram">Instagram</option>
+                <option value="facebook">Facebook</option>
+                <option value="pinterest">Pinterest</option>
+            </select>
+        </div>
+
         <!-- Analyze Button -->
         <button class="analyze-btn" id="analyzeBtn">
             <span class="analyze-btn__spinner"></span>
@@ -105,6 +121,11 @@
                     <span class="score-hero__value" id="scoreValue">0</span>
                 </div>
                 <p class="score-hero__label">Overall Engagement Score</p>
+                <div id="platformScoreContainer"
+                    style="display: none; margin: 0.75rem auto 0 auto; padding: 0.5rem 1rem; background: var(--surface-hover); border-radius: 20px; font-size: 0.9rem; font-weight: 600; width: fit-content;">
+                    Platform Score: <span id="platformScoreValue"></span>
+                    <span id="platformDeltaValue" style="margin-left: 0.25rem;"></span>
+                </div>
                 <div class="score-hero__meta">
                     <span>📝 <span id="wordCount">0</span> words</span>
                     <span>📏 <span id="sentenceCount">0</span> sentences</span>
