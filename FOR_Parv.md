@@ -25,8 +25,8 @@ Think of the app as a **pipeline** — five stages, each with a clear job:
 
 | Layer | File(s) | Job | Analogy |
 |---|---|---|---|
-| **File Ingestion** | `server/middleware/upload.js` | Accepts the file, validates type/size | The bouncer at a club — checks your ID before you get in |
-| **Text Extraction** | `server/extractors/pdfExtractor.js`, `imageExtractor.js` | Pulls raw text from the file | Like a scanner that turns a physical document into text |
+| **File Ingestion** | `server/middleware/upload.js` | Accepts file, validates, saves to temp dir, assigns UUID request ID | The bouncer at a club — checks your ID, stamps your hand with a number |
+| **Text Extraction** | `server/extractors/pdfExtractor.js`, `imageExtractor.js` | Extracts text with standardized output; PDF auto-falls back to OCR if text is sparse | Like a scanner — tries the fast reader first, calls in the specialist (OCR) if the page is blurry |
 | **Content Analysis** | `server/analysis/analyzer.js` | Scores text across 5 dimensions | The English teacher grading your essay |
 | **API Interface** | `server/index.js` | Connects the pipeline to HTTP routes | The waiter — takes orders, brings food, handles complaints |
 | **UI Rendering** | `index.html`, `main.js`, `style.css` | Shows results beautifully | The plate presentation at a fancy restaurant |
@@ -106,6 +106,46 @@ The tradeoff? We can't catch nuance like tone or cultural context. But for actio
 
 ---
 
+## Phase 3 & 4: The Ingestion & Extraction Deep Dive
+
+### Request IDs — Why Bother?
+
+Every file upload gets a UUID (e.g., `a3f8d1b6-0b3b-4b1a-9c1a-1a2b3c4d5e6f`). This seems like overkill for a simple app, but it solves real problems:
+
+1. **Temp file naming** — Uploaded files get saved as `{uuid}.pdf` instead of `report.pdf`, avoiding collisions when two users upload files with the same name.
+2. **Traceability** — When something fails in production, you can grep logs for the request ID and trace the entire lifecycle.
+3. **Future-proofing** — If you ever add async processing ("upload now, analyze later"), the request ID becomes the polling key.
+
+We switched from `multer.memoryStorage()` to `multer.diskStorage()` because holding 10MB files in Node.js heap memory is fragile — disk is safer and survives process restarts.
+
+### The OCR Fallback — The Cleverest Part
+
+Here's the problem: a user uploads a "PDF" that's actually just a scan — every page is an image, there's zero selectable text. `pdf-parse` will happily return an empty string and say "done."
+
+Our solution is a **threshold-based fallback**:
+
+```
+PDF uploaded → pdf-parse extracts text → is text.length < 50? 
+  → YES: re-run the same buffer through Tesseract OCR
+  → NO: use the native text (faster, higher confidence)
+```
+
+The magic number `50` is the `MIN_TEXT_THRESHOLD`. Why 50? Because even the most minimal PDF with actual text will have more than 50 characters. Anything less is almost certainly a scanned document or a PDF with only images.
+
+### Standardized Extraction Output
+
+Both extractors now return the same shape:
+```js
+{
+  extracted_text: string,       // The actual content
+  extraction_method: string,    // 'pdf-parse' | 'tesseract-ocr' | 'pdf-parse+ocr-fallback'
+  page_count: number,           // Number of pages/images processed
+  confidence_estimate: number   // 0-100, null if unknown
+}
+```
+
+This is called a **contract** — the server doesn't care which extractor produced the data, because both speak the same language. If you ever add a DOCX extractor, it just needs to return this same shape.
+
 ## The Frontend — What Makes It Feel Premium
 
 ### The Score Ring Animation
@@ -141,6 +181,11 @@ Every element uses `animation: fadeInUp 0.6s ease-out` with staggered delays. Th
 **Fix**: `git config user.email` and `git config user.name`.
 **Lesson**: In a shared or new environment, don't assume git config exists.
 
+### Bug 3: `multer.memoryStorage()` vs `diskStorage()`
+**What happened**: The first version used memory storage. This works fine for small files, but holding a 10MB buffer in Node's V8 heap means each concurrent upload eats 10MB of RAM.
+**Fix**: Switched to `diskStorage` with UUID filenames + a `cleanupTempFile()` helper in the `finally` block.
+**Lesson**: Always clean up temp files, even when errors happen. The `finally` block is your friend.
+
 ---
 
 ## Potential Pitfalls for the Future
@@ -149,10 +194,7 @@ Every element uses `animation: fadeInUp 0.6s ease-out` with staggered delays. Th
 The first OCR operation downloads ~30MB of language data. If the user is offline or on slow internet, this will fail silently or timeout. Consider bundling the English model, or at least showing a "downloading OCR model…" status.
 
 ### 2. `pdf-parse` Limitations
-It can't handle:
-- Scanned PDFs (image-based) — you'd need to run OCR on each page
-- Encrypted PDFs — they'll throw an error
-- PDFs with complex layouts (columns, tables) — text ordering may be garbled
+It can't handle encrypted PDFs (they'll throw an error) or PDFs with complex layouts (columns, tables) — text ordering may be garbled. Scanned PDFs now auto-fallback to OCR, but OCR on a full PDF buffer isn't ideal — rendering individual pages to images would be better.
 
 ### 3. Memory on Large Files
 The 10MB limit on uploads is there for a reason. Tesseract.js loads the entire image into memory. A 10MB PNG uncompressed could be 100MB+ in memory. On a server processing multiple concurrent requests, this could cause OOM crashes.
@@ -174,7 +216,10 @@ Look at our error handling: when OCR fails, we don't say "Error: extraction fail
 Our heuristic engine covers ~80% of useful content feedback with ~20% of the complexity that an ML-based approach would require. Knowing when "good enough" is the right target is a senior engineering skill.
 
 ### 4. Defensive Coding
-Every extractor wraps its logic in try/catch. The API validates inputs before processing. The frontend validates file type and size before even making the API call. Good code handles failure at every layer — not because you're paranoid, but because users will upload .exe files and pretend it's a PDF.
+Every extractor wraps its logic in try/catch. The API validates inputs before processing. The frontend validates file type and size before even making the API call. Temp files are cleaned up in `finally` blocks. Good code handles failure at every layer — not because you're paranoid, but because users will upload .exe files and pretend it's a PDF.
+
+### 5. Standardized Contracts
+When you have two modules that do similar things (PDF extraction and image extraction), make them return the same shape. This is called programming to an interface. The server code becomes simpler because it doesn't need `if (wasPDF) { use field A } else { use field B }` — both extractors speak the same language.
 
 ---
 
@@ -185,8 +230,8 @@ unthinkable/
 ├── docs/
 │   └── architecture.md          ← Mermaid diagrams + tech rationale
 ├── server/
-│   ├── index.js                 ← Express API + suggestion generator
-│   ├── middleware/upload.js     ← Multer file validation
+│   ├── index.js                 ← Express API + OCR fallback + suggestions
+│   ├── middleware/upload.js     ← Multer disk storage + UUID request IDs
 │   ├── extractors/
 │   │   ├── pdfExtractor.js      ← pdf-parse wrapper
 │   │   └── imageExtractor.js    ← Tesseract.js OCR wrapper
