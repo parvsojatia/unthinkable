@@ -3,10 +3,17 @@
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description"
         content="Upload files or paste URLs to get actionable suggestions to improve your content's engagement, readability, and clarity." />
+    <meta name="theme-color" content="#6c5ce7" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="color-scheme" content="dark" />
+    
     <title>Content Analyzer — Make Your Content More Engaging</title>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -16,35 +23,35 @@
 </head>
 
 <body>
-    <div class="app">
+    <div class="app" role="application">
         <!-- Header -->
-        <header class="header">
-            <span class="header__icon">📄</span>
+        <header class="header" role="banner">
+            <div class="header__icon" aria-hidden="true">📄</div>
             <h1 class="header__title">Content Analyzer</h1>
             <p class="header__subtitle">Upload a file or paste a URL — get concrete suggestions to boost engagement</p>
         </header>
 
         <!-- Top Right Actions -->
-        <button class="new-analysis-btn" id="newAnalysisBtn" title="Start a new analysis">
-            <span>➕</span> New Analysis
+        <button class="new-analysis-btn" id="newAnalysisBtn" title="Start a new analysis" aria-label="Start a new content analysis">
+            <span aria-hidden="true">➕</span> New Analysis
         </button>
 
-        <div id="inputArea">
+        <section id="inputArea" aria-label="Content input section">
             <!-- Input Mode Tabs -->
-            <div class="input-tabs" id="inputTabs">
-                <button class="input-tab input-tab--active" data-mode="file" id="tabFile">
-                    📤 Upload File
+            <div class="input-tabs" id="inputTabs" role="tablist" aria-label="Input method selection">
+                <button class="input-tab input-tab--active" data-mode="file" id="tabFile" role="tab" aria-selected="true" aria-controls="panelFile">
+                    <span aria-hidden="true">📤</span> Upload File
                 </button>
-                <button class="input-tab" data-mode="url" id="tabUrl">
-                    🌐 Paste URL
+                <button class="input-tab" data-mode="url" id="tabUrl" role="tab" aria-selected="false" aria-controls="panelUrl">
+                    <span aria-hidden="true">🌐</span> Paste URL
                 </button>
             </div>
 
             <!-- File Upload Mode -->
-            <div class="input-panel" id="panelFile">
-                <div class="upload-zone" id="uploadZone">
-                    <input type="file" class="upload-zone__input" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" />
-                    <span class="upload-zone__icon">📤</span>
+            <div class="input-panel" id="panelFile" role="tabpanel" aria-labelledby="tabFile">
+                <div class="upload-zone" id="uploadZone" tabindex="0" role="button" aria-label="Upload zone, click to select file or drag and drop">
+                    <input type="file" class="upload-zone__input" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" aria-label="Select file to upload" />
+                    <span class="upload-zone__icon" aria-hidden="true">📤</span>
                     <p class="upload-zone__text">
                         Drag & drop your file here, or <strong>click to browse</strong>
                     </p>
@@ -52,68 +59,69 @@
                 </div>
 
                 <!-- File Info -->
-                <div class="file-info" id="fileInfo">
-                    <span class="file-info__icon" id="fileIcon">📄</span>
-                    <span class="file-info__name" id="fileName"></span>
-                    <span class="file-info__size" id="fileSize"></span>
-                    <button class="file-info__remove" id="removeFile" title="Remove file">✕</button>
+                <div class="file-info" id="fileInfo" role="status" aria-live="polite">
+                    <span class="file-info__icon" id="fileIcon" aria-hidden="true">📄</span>
+                    <span class="file-info__name" id="fileName" aria-label="File name"></span>
+                    <span class="file-info__size" id="fileSize" aria-label="File size"></span>
+                    <button class="file-info__remove" id="removeFile" title="Remove file" aria-label="Remove selected file">✕</button>
                 </div>
             </div>
 
             <!-- URL Input Mode -->
-            <div class="input-panel input-panel--hidden" id="panelUrl">
+            <div class="input-panel input-panel--hidden" id="panelUrl" role="tabpanel" aria-labelledby="tabUrl">
                 <div class="url-input-group">
+                    <label for="urlInput" class="sr-only">Enter URL</label>
                     <div class="url-input-wrapper">
-                        <span class="url-input__icon">🔗</span>
+                        <span class="url-input__icon" aria-hidden="true">🔗</span>
                         <input type="url" class="url-input" id="urlInput"
-                            placeholder="https://example.com/blog-post or image URL" />
-                        <button class="url-input__clear" id="clearUrl" title="Clear URL">✕</button>
+                            placeholder="https://example.com/blog-post or image URL" aria-label="URL input field" />
+                        <button class="url-input__clear" id="clearUrl" title="Clear URL" aria-label="Clear URL input">✕</button>
                     </div>
                     <p class="url-input__hint">Web pages, blog posts, articles, or image URLs (PNG, JPG)</p>
                 </div>
             </div>
 
             <!-- Analyze Button -->
-            <button class="analyze-btn" id="analyzeBtn">
-                <span class="analyze-btn__spinner"></span>
+            <button class="analyze-btn" id="analyzeBtn" aria-label="Analyze content">
+                <span class="analyze-btn__spinner" aria-hidden="true"></span>
                 <span class="analyze-btn__text">Analyze Content</span>
             </button>
-        </div>
+        </section>
 
         <!-- Error -->
-        <div class="error" id="errorBox"></div>
+        <div class="error" id="errorBox" role="alert" aria-live="assertive" aria-atomic="true"></div>
 
         <!-- Results -->
-        <section class="results" id="results">
+        <section class="results" id="results" aria-label="Analysis results" aria-busy="false">
             <!-- Top Meta Bar -->
             <div class="results-meta" id="resultsMeta">
-                <div class="results-meta__source" id="sourceInfo"></div>
-                <div class="results-meta__extraction" id="extractionMeta"></div>
+                <div class="results-meta__source" id="sourceInfo" aria-label="Source information"></div>
+                <div class="results-meta__extraction" id="extractionMeta" aria-label="Extraction metadata"></div>
             </div>
 
             <!-- Dashboard Grid -->
-            <div class="dashboard">
+            <div class="dashboard" role="region" aria-label="Analysis summary">
                 <!-- Left: The Verdict -->
                 <div class="dashboard__panel dashboard__panel--verdict">
                     <h2 class="dashboard__panel-title">The Verdict</h2>
                     <div class="score-hero" id="scoreHero">
                         <div class="score-hero__ring">
-                            <svg viewBox="0 0 160 160">
+                            <svg viewBox="0 0 160 160" aria-label="Engagement score visualization">
                                 <circle class="score-hero__ring-bg" cx="80" cy="80" r="70" />
                                 <circle class="score-hero__ring-progress" id="scoreRing" cx="80" cy="80" r="70"
                                     stroke-dasharray="439.82" stroke-dashoffset="439.82" />
                             </svg>
-                            <span class="score-hero__value" id="scoreValue">0</span>
+                            <span class="score-hero__value" id="scoreValue" aria-live="polite">0</span>
                         </div>
                         <p class="score-hero__label">Overall Engagement Score</p>
-                        <div class="tone-badge" id="toneBadge"></div>
+                        <div class="tone-badge" id="toneBadge" aria-label="Tone assessment"></div>
                     </div>
                 </div>
 
                 <!-- Right: Quick Stats -->
                 <div class="dashboard__panel dashboard__panel--stats">
                     <h2 class="dashboard__panel-title">Overview</h2>
-                    <div class="stats-grid" id="statsGrid">
+                    <div class="stats-grid" id="statsGrid" role="region" aria-label="Key statistics">
                         <!-- Filled dynamically by main.js -->
                     </div>
                 </div>
@@ -121,13 +129,13 @@
 
             <!-- Dimension Cards -->
             <h2 class="section-title">Analysis Breakdown</h2>
-            <div class="dimensions" id="dimensions"></div>
+            <div class="dimensions" id="dimensions" role="region" aria-label="Detailed analysis dimensions"></div>
 
             <!-- Action Plan -->
-            <div class="suggestions" id="suggestions">
-                <h2 class="section-title">🚀 Actionable Plan</h2>
+            <section class="suggestions" id="suggestions" role="region" aria-label="Actionable improvement suggestions">
+                <h2 class="section-title"><span aria-hidden="true">🚀</span> Actionable Plan</h2>
                 <div id="suggestionList"></div>
-            </div>
+            </section>
         </section>
     </div>
 

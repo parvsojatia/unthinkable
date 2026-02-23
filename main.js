@@ -45,6 +45,10 @@ function switchMode(mode) {
 
     tabFile.classList.toggle('input-tab--active', mode === 'file');
     tabUrl.classList.toggle('input-tab--active', mode === 'url');
+    
+    // Update ARIA states for tab buttons
+    tabFile.setAttribute('aria-selected', mode === 'file');
+    tabUrl.setAttribute('aria-selected', mode === 'url');
 
     panelFile.classList.toggle('input-panel--hidden', mode !== 'file');
     panelUrl.classList.toggle('input-panel--hidden', mode !== 'url');
@@ -53,6 +57,13 @@ function switchMode(mode) {
     updateAnalyzeButton();
     hideError();
     results.classList.remove('results--visible');
+    
+    // Set focus to active input field for better keyboard navigation
+    if (mode === 'file') {
+        fileInput.focus();
+    } else {
+        urlInput.focus();
+    }
 }
 
 function updateAnalyzeButton() {
@@ -84,6 +95,14 @@ uploadZone.addEventListener('drop', (e) => {
     uploadZone.classList.remove('upload-zone--dragover');
     const file = e.dataTransfer.files[0];
     if (file) selectFile(file);
+});
+
+// Keyboard support for upload zone
+uploadZone.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        fileInput.click();
+    }
 });
 
 removeFileBtn.addEventListener('click', (e) => {
@@ -212,19 +231,37 @@ async function analyzeUrl() {
 function setLoading(loading) {
     analyzeBtn.disabled = loading;
     analyzeBtn.classList.toggle('analyze-btn--loading', loading);
+    analyzeBtn.setAttribute('aria-busy', loading ? 'true' : 'false');
     const textEl = analyzeBtn.querySelector('.analyze-btn__text');
     textEl.textContent = loading ? 'Analyzing…' : 'Analyze Content';
+    
+    // Update results section aria-busy state
+    const resultsSection = document.getElementById('results');
+    if (resultsSection) {
+        resultsSection.setAttribute('aria-busy', loading ? 'true' : 'false');
+    }
 }
 
 // ─── Error Handling ───────────────────────────────────────
 
 function showError(message) {
-    errorBox.textContent = '⚠️ ' + message;
+    errorBox.textContent = message;
     errorBox.classList.add('error--visible');
+    
+    // Update aria-busy for accessibility
+    const resultsSection = document.getElementById('results');
+    if (resultsSection) {
+        resultsSection.setAttribute('aria-busy', 'false');
+    }
+    
+    // Announce error to screen readers
+    errorBox.setAttribute('role', 'alert');
+    errorBox.focus();
 }
 
 function hideError() {
     errorBox.classList.remove('error--visible');
+    errorBox.textContent = '';
 }
 
 // ─── Render Results ───────────────────────────────────────
@@ -372,6 +409,14 @@ function renderResults(data, source) {
     }
 
     results.classList.add('results--visible');
+    
+    // Focus management for accessibility
+    const resultHeading = document.querySelector('.results h2, .section-title');
+    if (resultHeading) {
+        resultHeading.tabIndex = -1;
+        resultHeading.focus();
+    }
+    
     results.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
