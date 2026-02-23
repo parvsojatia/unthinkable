@@ -11,6 +11,8 @@
  * All heuristics are deterministic. No LLMs, no external APIs.
  */
 
+import { isAvailable, getEmbedding, getCentroids, cosineSimilarity } from './embeddings.js';
+
 // ─── Shared Helpers ──────────────────────────────────────────
 
 function splitSentences(text) {
@@ -74,9 +76,9 @@ const VAGUE_WORDS = new Set([
  * Score the opening hook.
  *
  * @param {string} text - Full content text
- * @returns {{ score: number, hookType: string|null, firstSentence: string, signals: object, reasons: string[] }}
+ * @returns {Promise<{ score: number, hookType: string|null, firstSentence: string, signals: object, reasons: string[] }>}
  */
-export function analyzeHook(text) {
+export async function analyzeHook(text) {
     const reasons = [];
 
     if (!text || text.trim().length === 0) {
@@ -106,12 +108,38 @@ export function analyzeHook(text) {
         hookType = 'question';
         patternScore = 1;
     } else {
-        for (const p of HOOK_PATTERNS) {
-            if (p.type === 'question') continue; // already checked
-            if (p.regex.test(opening)) {
-                hookType = p.type;
-                patternScore = 1;
-                break;
+        // Semantic Embedding check
+        if (isAvailable()) {
+            const vec = await getEmbedding(firstSentence);
+            if (vec) {
+                const { hooks } = getCentroids();
+                let bestMatch = null;
+                let bestSim = -1;
+                for (const [type, centroid] of Object.entries(hooks)) {
+                    if (!centroid) continue;
+                    const sim = cosineSimilarity(vec, centroid);
+                    if (sim > bestSim) {
+                        bestSim = sim;
+                        bestMatch = type;
+                    }
+                }
+                // Determine hook based on semantic threshold
+                if (bestMatch && bestSim >= 0.35) {
+                    hookType = bestMatch;
+                    patternScore = 1;
+                }
+            }
+        }
+
+        // Fallback to regex if no semantic hook type found
+        if (!hookType) {
+            for (const p of HOOK_PATTERNS) {
+                if (p.type === 'question') continue; // already checked
+                if (p.regex.test(opening)) {
+                    hookType = p.type;
+                    patternScore = 1;
+                    break;
+                }
             }
         }
     }
@@ -389,14 +417,32 @@ const PAS_KEYWORDS = {
 };
 
 /**
- * Score a text segment against a keyword regex.
+ * Score a text segment against a keyword regex or semantic centroid.
  * Returns 0-1 confidence.
  */
-function phaseConfidence(segment, regex) {
+async function phaseConfidence(segment, regex, phaseName) {
     const sentences = splitSentences(segment);
     if (sentences.length === 0) return 0;
 
     let hits = 0;
+
+    if (isAvailable()) {
+        const { persuasion } = getCentroids();
+        const phaseCentroid = persuasion[phaseName];
+        if (phaseCentroid) {
+            for (const s of sentences) {
+                const vec = await getEmbedding(s);
+                if (vec && cosineSimilarity(vec, phaseCentroid) > 0.35) {
+                    hits++;
+                } else if (regex.test(s)) {
+                    hits++; // Fallback to regex for this sentence if low sim
+                }
+            }
+            return Math.min(1, hits / Math.max(sentences.length * 0.4, 1));
+        }
+    }
+
+    // Pure regex logic fallback
     for (const s of sentences) {
         if (regex.test(s)) hits++;
     }
@@ -407,9 +453,9 @@ function phaseConfidence(segment, regex) {
  * Detect whether content follows AIDA, PAS, or neither.
  *
  * @param {string} text
- * @returns {{ framework: string, confidence: number, phases: object, reasons: string[] }}
+ * @returns {Promise<{ framework: string, confidence: number, phases: object, reasons: string[] }>}
  */
-export function detectPersuasion(text) {
+export async function detectPersuasion(text) {
     const reasons = [];
 
     if (!text || text.trim().length === 0) {
@@ -434,7 +480,7 @@ export function detectPersuasion(text) {
     const aidaPhases = {};
     let aidaTotal = 0;
     for (const [phase, segment] of Object.entries(aidaSegments)) {
-        const conf = phaseConfidence(segment, AIDA_KEYWORDS[phase]);
+        const conf = await phaseConfidence(segment, AIDA_KEYWORDS[phase], phase);
         aidaPhases[phase] = Math.round(conf * 100) / 100;
         aidaTotal += conf;
     }
@@ -449,7 +495,7 @@ export function detectPersuasion(text) {
     const pasPhases = {};
     let pasTotal = 0;
     for (const [phase, segment] of Object.entries(pasSegments)) {
-        const conf = phaseConfidence(segment, PAS_KEYWORDS[phase]);
+        const conf = await phaseConfidence(segment, PAS_KEYWORDS[phase], phase);
         pasPhases[phase] = Math.round(conf * 100) / 100;
         pasTotal += conf;
     }

@@ -541,9 +541,9 @@ function generateSuggestions(dimensions, ctx) {
  *
  * @param {string} text - The text content to analyze
  * @param {object} [preprocessed] - Optional preprocessed data from preprocessor
- * @returns {{ overallScore, dimensions, metrics, suggestions, wordCount, sentenceCount }}
+ * @returns {Promise<{ overallScore, dimensions, metrics, suggestions, wordCount, sentenceCount }>}
  */
-export function analyzeContent(text, preprocessed = null) {
+export async function analyzeContent(text, preprocessed = null) {
     if (!text || text.trim().length === 0) {
         return {
             overallScore: 0,
@@ -576,9 +576,9 @@ export function analyzeContent(text, preprocessed = null) {
     };
 
     // Content signal modules (Phase 7)
-    const hook = analyzeHook(text);
+    const hook = await analyzeHook(text);
     const cognitiveLoad = analyzeCognitiveLoad(text);
-    const persuasion = detectPersuasion(text);
+    const persuasion = await detectPersuasion(text);
 
     const dimensions = {
         readability, structure, engagement, clarity, actionability, sentiment,

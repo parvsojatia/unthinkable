@@ -6,41 +6,41 @@ import { analyzeHook, analyzeCognitiveLoad, detectPersuasion, generateContentExp
 // ═══════════════════════════════════════════════════════════════
 
 describe('analyzeHook', () => {
-    it('handles empty input gracefully', () => {
-        const result = analyzeHook('');
+    it('handles empty input gracefully', async () => {
+        const result = await analyzeHook('');
         expect(result.score).toBe(0);
         expect(result.hookType).toBeNull();
         expect(result.reasons).toHaveLength(1);
     });
 
-    it('detects question hooks', () => {
-        const result = analyzeHook('Is your content actually helping your career? Most people have no idea they are doing this wrong.');
+    it('detects question hooks', async () => {
+        const result = await analyzeHook('Is your content actually helping your career? Most people have no idea they are doing this wrong.');
         expect(result.hookType).toBe('question');
         expect(result.score).toBeGreaterThan(20);
         expect(result.reasons.length).toBeGreaterThan(0);
     });
 
-    it('detects statistic hooks', () => {
-        const result = analyzeHook('73% of hiring managers reject resumes within 6 seconds. The rest never even open them.');
+    it('detects statistic hooks', async () => {
+        const result = await analyzeHook('73% of hiring managers reject resumes within 6 seconds. The rest never even open them.');
         expect(result.hookType).toBe('statistic');
         expect(result.score).toBeGreaterThan(30);
     });
 
-    it('detects story hooks', () => {
-        const result = analyzeHook('I once lost $50,000 in a single afternoon. It taught me the most important lesson about risk.');
+    it('detects story hooks', async () => {
+        const result = await analyzeHook('I once lost $50,000 in a single afternoon. It taught me the most important lesson about risk.');
         expect(result.hookType).toBe('story');
         expect(result.score).toBeGreaterThan(30);
     });
 
-    it('penalizes vague openings', () => {
-        const vague = analyzeHook('Things are kind of interesting in the world of various stuff.');
-        const specific = analyzeHook('Tesla stock dropped 12% after Elon Musk announced the Cybertruck delay.');
+    it('penalizes vague openings', async () => {
+        const vague = await analyzeHook('Things are kind of interesting in the world of various stuff.');
+        const specific = await analyzeHook('Tesla stock dropped 12% after Elon Musk announced the Cybertruck delay.');
         expect(specific.score).toBeGreaterThan(vague.score);
     });
 
-    it('prefers short first sentences', () => {
-        const short = analyzeHook('Stop doing this. Your career depends on it.');
-        const long = analyzeHook('There are many different things that people need to consider when they are thinking about the various aspects of their professional career development in the modern world today.');
+    it('prefers short first sentences', async () => {
+        const short = await analyzeHook('Stop doing this. Your career depends on it.');
+        const long = await analyzeHook('There are many different things that people need to consider when they are thinking about the various aspects of their professional career development in the modern world today.');
         expect(short.score).toBeGreaterThan(long.score);
     });
 });
@@ -80,32 +80,32 @@ describe('analyzeCognitiveLoad', () => {
 // ═══════════════════════════════════════════════════════════════
 
 describe('detectPersuasion', () => {
-    it('handles empty input gracefully', () => {
-        const result = detectPersuasion('');
+    it('handles empty input gracefully', async () => {
+        const result = await detectPersuasion('');
         expect(result.framework).toBe('none');
         expect(result.confidence).toBe(0);
     });
 
-    it('handles very short input gracefully', () => {
-        const result = detectPersuasion('Buy now!');
+    it('handles very short input gracefully', async () => {
+        const result = await detectPersuasion('Buy now!');
         expect(result.framework).toBe('none');
     });
 
-    it('detects PAS-like structure', () => {
+    it('detects PAS-like structure', async () => {
         const pas = `
             Are you struggling with low engagement on your posts? Most people spend hours crafting content that nobody reads.
             Without fixing this, you will keep losing followers. Your competitors are winning because they understand one thing you do not.
             The solution is simple: use a content analyzer. Try our tool today and watch your engagement grow. Click here to get started.
         `;
-        const result = detectPersuasion(pas);
+        const result = await detectPersuasion(pas);
         expect(result.reasons.length).toBeGreaterThan(0);
         // Structure should be detected or at least partially scored
         expect(result.score).toBeGreaterThan(0);
     });
 
-    it('returns reasons for unstructured content', () => {
+    it('returns reasons for unstructured content', async () => {
         const random = 'The weather is nice today. I had pasta for lunch. My cat is sleeping. The sky is blue.';
-        const result = detectPersuasion(random);
+        const result = await detectPersuasion(random);
         expect(result.reasons.length).toBeGreaterThan(0);
     });
 });

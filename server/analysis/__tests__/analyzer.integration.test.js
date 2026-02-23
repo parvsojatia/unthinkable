@@ -2,13 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { analyzeContent } from '../analyzer.js';
 
 describe('analyzeContent integration', () => {
-    it('handles empty text gracefully', () => {
-        const result = analyzeContent('');
+    it('handles empty text gracefully', async () => {
+        const result = await analyzeContent('');
         expect(result.overallScore).toBe(0);
         expect(result.suggestions).toEqual([]);
     });
 
-    it('returns all expected fields for a real text', () => {
+    it('returns all expected fields for a real text', async () => {
         const text = `
             Have you ever wondered why some LinkedIn posts get thousands of likes while yours gets three?
             It is not luck. It is not connections. It is structure.
@@ -20,7 +20,7 @@ describe('analyzeContent integration', () => {
             What is the one change that made the biggest difference in your content? Drop a comment below.
         `;
 
-        const result = analyzeContent(text);
+        const result = await analyzeContent(text);
 
         // Core fields exist
         expect(result).toHaveProperty('overallScore');
@@ -61,9 +61,9 @@ describe('analyzeContent integration', () => {
         expect(result.overallScore).toBeGreaterThan(10);
     });
 
-    it('generates at least 3 suggestions for imperfect content', () => {
+    it('generates at least 3 suggestions for imperfect content', async () => {
         const text = 'things are nice and stuff happens sometimes in the world we live in today it is very interesting';
-        const result = analyzeContent(text);
+        const result = await analyzeContent(text);
         expect(result.suggestions.length).toBeGreaterThanOrEqual(3);
     });
 });
