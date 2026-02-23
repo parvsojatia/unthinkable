@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import upload from './middleware/upload.js';
+import fs from 'node:fs';
+import upload, { cleanupTempFile } from './middleware/upload.js';
 import { extractFromPDF } from './extractors/pdfExtractor.js';
 import { extractFromImage } from './extractors/imageExtractor.js';
 import { analyzeContent } from './analysis/analyzer.js';
@@ -17,50 +18,103 @@ app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// ─── Main Analysis Endpoint ──────────────────────────────
+// ─── Upload Only Endpoint ─────────────────────────────────
+// Phase 3: Accepts file, validates, saves to temp dir, returns request ID.
 
-app.post('/api/analyze', upload.single('file'), async (req, res) => {
+app.post('/api/upload', upload.single('file'), async (req, res) => {
     try {
         if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded. Please select a PDF or image.' });
+            return res.status(400).json({ error: 'No file uploaded. Please select a PDF, PNG, or JPG.' });
         }
 
-        const { mimetype, buffer, originalname, size } = req.file;
+        const { originalname, mimetype, size, path: filepath, requestId } = req.file;
+
+        res.json({
+            requestId,
+            filename: originalname,
+            fileType: mimetype,
+            fileSize: size,
+            message: 'File uploaded successfully. Use the requestId to trigger analysis.',
+        });
+    } catch (err) {
+        console.error('Upload error:', err);
+        res.status(500).json({ error: 'Upload failed. Please try again.' });
+    }
+});
+
+// ─── Full Pipeline Endpoint ───────────────────────────────
+// Upload → Extract → Analyze → Respond (all in one round-trip)
+
+app.post('/api/analyze', upload.single('file'), async (req, res) => {
+    let tempPath = null;
+
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded. Please select a PDF, PNG, or JPG.' });
+        }
+
+        const { mimetype, originalname, size, path: filepath, requestId } = req.file;
+        tempPath = filepath;
+
+        // Read the file buffer from disk
+        const buffer = fs.readFileSync(filepath);
+
+        // ── Extraction with OCR fallback ──────────────────
         let extraction;
 
-        // Route to the correct extractor based on MIME type
         if (mimetype === 'application/pdf') {
+            // Step 1: Try native PDF text extraction
             extraction = await extractFromPDF(buffer);
+
+            // Step 2: If text is too short, fall back to OCR
+            if (extraction.needs_ocr_fallback) {
+                console.log(`  ⚡ PDF "${originalname}" has < ${extraction.extracted_text.length} chars — falling back to OCR`);
+                try {
+                    const ocrResult = await extractFromImage(buffer);
+                    // Merge: use OCR text but keep PDF page count
+                    extraction = {
+                        extracted_text: ocrResult.extracted_text,
+                        extraction_method: 'pdf-parse+ocr-fallback',
+                        page_count: extraction.page_count,
+                        confidence_estimate: ocrResult.confidence_estimate,
+                    };
+                } catch (ocrErr) {
+                    console.warn('  ⚠️ OCR fallback also failed:', ocrErr.message);
+                    // Keep the sparse PDF text if OCR fails too
+                }
+            }
         } else if (mimetype.startsWith('image/')) {
             extraction = await extractFromImage(buffer);
         } else {
             return res.status(400).json({ error: `Unsupported file type: ${mimetype}` });
         }
 
-        // Check if extraction returned any text
-        if (!extraction.text || extraction.text.trim().length === 0) {
+        // ── Validate we got text ──────────────────────────
+        if (!extraction.extracted_text || extraction.extracted_text.trim().length === 0) {
             return res.status(422).json({
+                requestId,
                 error: 'Could not extract any text from this file.',
                 hint: mimetype.startsWith('image/')
                     ? 'Make sure the image contains clear, printed text. Handwritten text is not supported.'
-                    : 'The PDF may be image-based or encrypted. Try a different file.',
+                    : 'The PDF appears to be image-based and OCR could not read it. Try a higher-resolution scan.',
             });
         }
 
-        // Run analysis engine
-        const analysis = analyzeContent(extraction.text);
-
-        // Build suggestions from dimension scores
+        // ── Run analysis engine ───────────────────────────
+        const analysis = analyzeContent(extraction.extracted_text);
         const suggestions = generateSuggestions(analysis.dimensions);
 
         res.json({
+            requestId,
             filename: originalname,
             fileSize: size,
             fileType: mimetype,
             extraction: {
-                textLength: extraction.text.length,
-                pageCount: extraction.pageCount || null,
-                confidence: extraction.confidence || null,
+                extracted_text: extraction.extracted_text,
+                extraction_method: extraction.extraction_method,
+                page_count: extraction.page_count,
+                confidence_estimate: extraction.confidence_estimate,
+                text_length: extraction.extracted_text.length,
             },
             analysis: {
                 overallScore: analysis.overallScore,
@@ -73,6 +127,9 @@ app.post('/api/analyze', upload.single('file'), async (req, res) => {
     } catch (err) {
         console.error('Analysis error:', err);
         res.status(500).json({ error: 'Analysis failed. Please try again with a different file.' });
+    } finally {
+        // Always clean up the temp file
+        cleanupTempFile(tempPath);
     }
 });
 
@@ -81,7 +138,7 @@ app.post('/api/analyze', upload.single('file'), async (req, res) => {
 function generateSuggestions(dimensions) {
     const suggestions = [];
 
-    // Readability suggestions
+    // Readability
     if (dimensions.readability) {
         const { score, details } = dimensions.readability;
         if (score < 60 && details.gradeLevel) {
@@ -104,7 +161,7 @@ function generateSuggestions(dimensions) {
         }
     }
 
-    // Structure suggestions
+    // Structure
     if (dimensions.structure) {
         const { score, details } = dimensions.structure;
         if (details.headingCount === 0) {
@@ -125,7 +182,7 @@ function generateSuggestions(dimensions) {
                 how: 'Break paragraphs at topic shifts. Aim for 3-5 sentences per paragraph.',
             });
         }
-        if (details.listItemCount === 0 && dimensions.structure.score < 70) {
+        if (details.listItemCount === 0 && score < 70) {
             suggestions.push({
                 dimension: 'Structure',
                 severity: 'low',
@@ -136,9 +193,9 @@ function generateSuggestions(dimensions) {
         }
     }
 
-    // Engagement suggestions
+    // Engagement
     if (dimensions.engagement) {
-        const { score, details } = dimensions.engagement;
+        const { details } = dimensions.engagement;
         if (details.questionCount === 0) {
             suggestions.push({
                 dimension: 'Engagement',
@@ -159,9 +216,9 @@ function generateSuggestions(dimensions) {
         }
     }
 
-    // Clarity suggestions
+    // Clarity
     if (dimensions.clarity) {
-        const { score, details } = dimensions.clarity;
+        const { details } = dimensions.clarity;
         if (details.passiveRatio > 20) {
             suggestions.push({
                 dimension: 'Clarity',
@@ -182,7 +239,7 @@ function generateSuggestions(dimensions) {
         }
     }
 
-    // Actionability suggestions
+    // Actionability
     if (dimensions.actionability) {
         const { score, details } = dimensions.actionability;
         if (details.numberedSteps === 0 && details.imperativeSentences < 2) {
@@ -200,12 +257,11 @@ function generateSuggestions(dimensions) {
     const severityOrder = { high: 0, medium: 1, low: 2 };
     suggestions.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
 
-    return suggestions.slice(0, 6); // Cap at 6 suggestions
+    return suggestions.slice(0, 6);
 }
 
 // ─── Error Handling ───────────────────────────────────────
 
-// Multer error handler
 app.use((err, _req, res, _next) => {
     if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(413).json({ error: 'File too large. Maximum size is 10 MB.' });
@@ -221,6 +277,7 @@ app.use((err, _req, res, _next) => {
 
 app.listen(PORT, () => {
     console.log(`\n  🚀 Content Analyzer API running on http://localhost:${PORT}`);
-    console.log(`  📋 Health check: http://localhost:${PORT}/api/health`);
-    console.log(`  📤 Upload endpoint: POST http://localhost:${PORT}/api/analyze\n`);
+    console.log(`  📋 Health check:     GET  http://localhost:${PORT}/api/health`);
+    console.log(`  📤 Upload only:      POST http://localhost:${PORT}/api/upload`);
+    console.log(`  🔬 Full analysis:    POST http://localhost:${PORT}/api/analyze\n`);
 });

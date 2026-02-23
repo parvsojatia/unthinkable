@@ -136,7 +136,7 @@ function hideError() {
 // ─── Render Results ───────────────────────────────────────
 
 function renderResults(data) {
-    const { analysis, suggestions, filename } = data;
+    const { analysis, suggestions, extraction, requestId, filename } = data;
     const { overallScore, wordCount, sentenceCount, dimensions } = analysis;
 
     // Score ring
@@ -144,6 +144,29 @@ function renderResults(data) {
     document.getElementById('wordCount').textContent = wordCount.toLocaleString();
     document.getElementById('sentenceCount').textContent = sentenceCount.toLocaleString();
     document.getElementById('resultFilename').textContent = filename;
+
+    // Extraction metadata
+    const metaEl = document.getElementById('extractionMeta');
+    if (metaEl) {
+        const methodLabel = {
+            'pdf-parse': '📄 Native PDF',
+            'tesseract-ocr': '🔍 Tesseract OCR',
+            'pdf-parse+ocr-fallback': '🔄 PDF → OCR Fallback',
+        };
+        const method = methodLabel[extraction.extraction_method] || extraction.extraction_method;
+        const confidence = extraction.confidence_estimate
+            ? `${extraction.confidence_estimate}%`
+            : '—';
+        const pages = extraction.page_count || '—';
+
+        metaEl.innerHTML = `
+            <span title="Extraction method">${method}</span>
+            <span title="Confidence">🎯 ${confidence}</span>
+            <span title="Pages">📑 ${pages} pg</span>
+            <span title="Request ID" class="extraction-meta__id">🔑 ${requestId.slice(0, 8)}…</span>
+        `;
+        metaEl.classList.add('extraction-meta--visible');
+    }
 
     // Dimension cards
     const dimsContainer = document.getElementById('dimensions');

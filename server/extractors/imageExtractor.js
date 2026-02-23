@@ -1,9 +1,16 @@
 import { createWorker } from 'tesseract.js';
 
 /**
- * Extract text from an image buffer using Tesseract OCR.
+ * Extract text from an image buffer (or PDF page rendered as image) using Tesseract OCR.
+ * Returns standardized extraction result.
+ *
  * @param {Buffer} buffer - The image file buffer
- * @returns {Promise<{text: string, confidence: number}>}
+ * @returns {Promise<{
+ *   extracted_text: string,
+ *   extraction_method: 'tesseract-ocr',
+ *   page_count: number,
+ *   confidence_estimate: number
+ * }>}
  */
 export async function extractFromImage(buffer) {
     let worker;
@@ -11,8 +18,10 @@ export async function extractFromImage(buffer) {
         worker = await createWorker('eng');
         const { data } = await worker.recognize(buffer);
         return {
-            text: data.text.trim(),
-            confidence: Math.round(data.confidence),
+            extracted_text: data.text.trim(),
+            extraction_method: 'tesseract-ocr',
+            page_count: 1,
+            confidence_estimate: Math.round(data.confidence),
         };
     } catch (err) {
         throw new Error(`OCR extraction failed: ${err.message}`);
