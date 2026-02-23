@@ -372,7 +372,7 @@ function animateScore(target) {
 }
 
 function scoreColor(score) {
-    if (score >= 70) return 'var(--success)';
-    if (score >= 40) return 'var(--warning)';
-    return 'var(--danger)';
+    if (score >= 70) return '#2d9d78';
+    if (score >= 40) return '#d4941e';
+    return '#c1392b';
 }
