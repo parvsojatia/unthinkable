@@ -37,7 +37,13 @@ ML models are big (~90MB). The first time you run the server, it has to download
 Modern websites (like LinkedIn) are complex. They hide thousands of words of "config data" (JSON) and massive "footer directories" inside the same tags where the actual post lives. 
 - **The Lesson**: A good extractor doesn't just "get text"; it aggressively removes noise. We had to teach the app to ignore `code` tags and `footer` classes to prevent a 200-word post from looking like a 4,280-word essay.
 
-### 5. How Good Engineers Think
+### 5. Professional Folder Structure (src/public)
+Previously, we had everything in the root folder. While that works for small projects, real-world apps separate source code from configuration and assets.
+- `src/`: Where your logic lives (`HTML`, `JS`, `CSS`).
+- `public/`: Where your "heavier" non-source assets live (like the 50MB Tesseract binary).
+This makes the repo cleaner and follows standard industry patterns.
+
+### 6. How Good Engineers Think
 A good engineer doesn't just write code that works; they write code that *proves* it works. That’s why we have tests for every single ML layer. If a test fails, we know exactly where the "Brain" is broken.
 
 Enjoy your new, smarter Content Analyzer! 🚀
